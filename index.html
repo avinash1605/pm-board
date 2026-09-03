@@ -223,6 +223,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .badge-compliance{color:#1e40af;background:#eff6ff;border-color:#bfdbfe}
 .badge-triage    {color:#374151;background:#f9fafb;border-color:#e5e7eb}
 .badge-jira{color:#4338ca;background:#eef2ff;border-color:#c7d2fe;font-family:'JetBrains Mono',monospace}
+.jira-ticket-chip{position:relative;display:inline-flex;align-items:center;vertical-align:middle}
+.jira-id-btn{cursor:pointer;font:inherit;line-height:inherit;appearance:none}
+.jira-id-btn:hover{opacity:.85}
+.jira-link-pop{display:none;position:absolute;left:0;top:calc(100% + 4px);z-index:40;min-width:180px;max-width:280px;padding:7px 9px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;box-shadow:var(--shadow-md)}
+.jira-link-pop.open{display:block}
+.jira-link-pop-a{font-size:11px;color:var(--accent);word-break:break-all;text-decoration:none;line-height:1.4}
+.jira-link-pop-a:hover{text-decoration:underline}
+.jira-link-pop-empty{font-size:10px;color:var(--text4)}
+.jira-link-pop-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text4);margin-bottom:3px}
 
 /* Customer tag */
 .reporter-tag{font-size:10px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:1px 6px}
@@ -462,6 +471,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
         <div class="field-group"><div class="field-label">Status</div><select class="field-select" id="edit-status-sel"></select></div>
       </div>
       <div class="field-group"><div class="field-label">Customer / Reporter</div><input class="field-input" id="edit-customer" type="text" placeholder="optional"></div>
+      <div class="field-row">
+        <div class="field-group"><div class="field-label">Jira Ticket ID</div><input class="field-input" id="edit-jira-id" type="text" placeholder="e.g. SB-1234"></div>
+        <div class="field-group"><div class="field-label">Jira Ticket Link</div><input class="field-input" id="edit-jira-link" type="url" placeholder="https://…"></div>
+      </div>
       <div class="field-group"><div class="field-label">Notes</div><textarea class="field-textarea" id="edit-notes"></textarea></div>
     </div>
     <div class="modal-footer">
@@ -496,6 +509,10 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
         </div>
       </div>
       <div class="field-group"><div class="field-label">Customer / Reporter</div><input class="field-input" id="add-customer" type="text" placeholder="optional"></div>
+      <div class="field-row">
+        <div class="field-group"><div class="field-label">Jira Ticket ID</div><input class="field-input" id="add-jira-id" type="text" placeholder="e.g. SB-1234"></div>
+        <div class="field-group"><div class="field-label">Jira Ticket Link</div><input class="field-input" id="add-jira-link" type="url" placeholder="https://…"></div>
+      </div>
       <div class="field-group"><div class="field-label">Notes</div><textarea class="field-textarea" id="add-notes" placeholder="Context…" style="min-height:52px"></textarea></div>
     </div>
     <div class="modal-footer">
@@ -1246,14 +1263,19 @@ document.getElementById('edit-save').addEventListener('click',async()=>{
   const st=document.getElementById('edit-status-sel').value;
   const cu=document.getElementById('edit-customer').value.trim();
   const no=document.getElementById('edit-notes').value.trim();
+  const jiraId=document.getElementById('edit-jira-id').value.trim();
+  const jiraLink=document.getElementById('edit-jira-link').value.trim();
   activeEditCard.querySelector('.item-title').textContent=t;
   const tb=activeEditCard.querySelector('.badge[data-role="type"]');
   if(tb){tb.className='badge '+typeClass[ty];tb.setAttribute('data-role','type');tb.textContent=typeLabels[ty];}
   const sw=activeEditCard.querySelector('.card-status-wrap');
   if(sw){sw.dataset.st=st;const pill=sw.querySelector('.status-pill');if(pill){const s=getStatusStyle(st);pill.className='status-pill '+s.cls;pill.innerHTML='<span>'+s.label+'</span><span class="status-pill-arrow">▾</span>';}}
+  const tlr=activeEditCard.querySelector(':scope > .ticket-link-row');
+  if(tlr)tlr.classList.toggle('show',st==='ticket-created');
   const meta=activeEditCard.querySelector('.item-meta');
   let rt=activeEditCard.querySelector('.reporter-tag');
   if(cu){if(!rt){rt=document.createElement('span');rt.className='reporter-tag';meta.appendChild(rt);}rt.textContent='🏢 '+cu;}else if(rt)rt.remove();
+  setJiraTicketChip(activeEditCard,jiraId,jiraLink);
   const ta=activeEditCard.querySelector('.notes-area,.jira-notes-area');
   if(ta){ta.value=no;try{await store.set('notes:'+activeEditCard.dataset.id,no);}catch(e){}}
   activeEditCard.classList.add('moved-flash');
@@ -1283,6 +1305,9 @@ function openEditModal(card){
   populateSelect(document.getElementById('edit-status-sel'),sw?sw.dataset.st:'none');
   const rt=card.querySelector('.reporter-tag');
   document.getElementById('edit-customer').value=rt?rt.textContent.replace(/^[🏢👤]\s*/u,''):'';
+  const jiraChip=card.querySelector('.jira-ticket-chip');
+  document.getElementById('edit-jira-id').value=jiraChip?.dataset.jiraKey||'';
+  document.getElementById('edit-jira-link').value=jiraChip?.dataset.jiraLink||'';
   document.getElementById('edit-notes').value=card.querySelector('.notes-area,.jira-notes-area')?.value||'';
   editModal.classList.add('open');
   setTimeout(()=>document.getElementById('edit-title').focus(),50);
@@ -1297,7 +1322,7 @@ addModal.addEventListener('click',e=>{if(e.target===addModal)closeAdd();});
 function openAddModal(area){
   addTargetArea=area;
   document.getElementById('add-modal-ctx').textContent=area==='smartbot'?'SmartBot':'ZenChat';
-  ['add-title','add-customer','add-notes'].forEach(id=>document.getElementById(id).value='');
+  ['add-title','add-customer','add-notes','add-jira-id','add-jira-link'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('add-type').value='new';
   document.getElementById('add-source').value='internal';
   addModal.classList.add('open');
@@ -1309,14 +1334,70 @@ document.getElementById('add-save').addEventListener('click',()=>{
   const src=document.getElementById('add-source').value;
   idCounter++;
   const prefix=addTargetArea==='smartbot'?'SB':'ZC';
+  const jiraKey=document.getElementById('add-jira-id').value.trim();
+  const jiraLink=document.getElementById('add-jira-link').value.trim();
   const item={id:prefix+'-'+idCounter,source:src,title:t,type:document.getElementById('add-type').value,st:'none',
     customer:document.getElementById('add-customer').value.trim()||null,
-    notes:document.getElementById('add-notes').value.trim(),jira:false};
+    notes:document.getElementById('add-notes').value.trim(),jira:false,
+    jiraKey,jiraLink};
   const col=document.getElementById(addTargetArea+'-items');
-  const list=Array.from(col.querySelectorAll('.sort-list')).find(l=>l.dataset.bucket===src);
+  let list=Array.from(col.querySelectorAll('.board-section .sort-list')).find(l=>{
+    const sec=l.closest('.board-section');
+    return sec&&(sec.dataset.sectionId===src||(sec.querySelector('.board-section-name')?.value||'').toLowerCase().includes(src));
+  });
+  if(!list)list=col.querySelector('.board-section .sort-list');
   if(list)list.appendChild(buildCard(item));
   updateStats();saveBoardState();closeAdd();
 });
+
+/* ── Jira ticket chip (ID on card; link on click) ── */
+function escapeHtml(s){
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function buildJiraTicketChip(jiraKey,jiraLink){
+  if(!jiraKey)return null;
+  const wrap=document.createElement('span');
+  wrap.className='jira-ticket-chip';
+  wrap.dataset.jiraKey=jiraKey;
+  wrap.dataset.jiraLink=jiraLink||'';
+
+  const btn=document.createElement('button');
+  btn.type='button';
+  btn.className='badge badge-jira jira-id-btn';
+  btn.textContent=jiraKey;
+  btn.title=jiraLink?'Click to show link':'No link set — add via Edit';
+
+  const pop=document.createElement('div');
+  pop.className='jira-link-pop';
+  pop.innerHTML=jiraLink
+    ?'<div class="jira-link-pop-label">Jira link</div><a class="jira-link-pop-a" href="'+escapeHtml(jiraLink)+'" target="_blank" rel="noopener noreferrer">'+escapeHtml(jiraLink)+'</a>'
+    :'<div class="jira-link-pop-empty">No link set — edit task to add one</div>';
+
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    e.preventDefault();
+    document.querySelectorAll('.jira-link-pop.open').forEach(p=>{if(p!==pop)p.classList.remove('open');});
+    pop.classList.toggle('open');
+  });
+  pop.addEventListener('click',e=>e.stopPropagation());
+
+  wrap.append(btn,pop);
+  return wrap;
+}
+
+function setJiraTicketChip(card,jiraKey,jiraLink){
+  const meta=card.querySelector(':scope > .item-header .item-meta');
+  if(!meta)return;
+  const existing=meta.querySelector('.jira-ticket-chip');
+  if(existing)existing.remove();
+  const chip=buildJiraTicketChip(jiraKey,jiraLink);
+  if(!chip)return;
+  const typeBadge=meta.querySelector('.badge[data-role="type"]');
+  if(typeBadge&&typeBadge.nextSibling)meta.insertBefore(chip,typeBadge.nextSibling);
+  else if(typeBadge)meta.appendChild(chip);
+  else meta.insertBefore(chip,meta.firstChild);
+}
 
 /* ── Build card ── */
 function buildCard(item){
@@ -1327,7 +1408,6 @@ function buildCard(item){
 
   const custLine=item.customer?'<span class="reporter-tag">🏢 '+item.customer+'</span>'
     :item.reporter?'<span class="reporter-tag">👤 '+item.reporter+'</span>':'';
-  const jiraBadge=isJira?'<span class="badge badge-jira">⧉ '+item.jiraKey+'</span>':'';
 
   const hdr=document.createElement('div');hdr.className='item-header';
   hdr.innerHTML=
@@ -1338,13 +1418,26 @@ function buildCard(item){
       '<div class="item-title">'+item.title+'</div>'+
       '<div class="item-meta">'+
         '<span class="badge '+typeClass[item.type]+'" data-role="type">'+typeLabels[item.type]+'</span>'+
-        jiraBadge+custLine+
+        custLine+
       '</div>'+
     '</div>'+
     '<div class="item-right">'+
       '<button class="edit-btn" title="Edit">✏</button>'+
       '<span class="chevron">▾</span>'+
     '</div>';
+
+  // Jira ticket ID on card (link appears on click)
+  const jiraKey=item.jiraKey||'';
+  const jiraLink=item.jiraLink||'';
+  if(jiraKey){
+    const chip=buildJiraTicketChip(jiraKey,jiraLink);
+    const meta=hdr.querySelector('.item-meta');
+    const typeBadge=meta.querySelector('.badge[data-role="type"]');
+    if(chip){
+      if(typeBadge&&typeBadge.nextSibling)meta.insertBefore(chip,typeBadge.nextSibling);
+      else meta.appendChild(chip);
+    }
+  }
 
   // checkbox
   const chk=hdr.querySelector('.card-checkbox');
@@ -1361,7 +1454,7 @@ function buildCard(item){
 
   hdr.querySelector('.edit-btn').addEventListener('click',e=>{e.stopPropagation();openEditModal(card);});
   hdr.addEventListener('click',e=>{
-    if(e.target.closest('.drag-handle')||e.target.closest('.edit-btn')||e.target.closest('.card-status-wrap')||e.target.closest('.card-select-wrap'))return;
+    if(e.target.closest('.drag-handle')||e.target.closest('.edit-btn')||e.target.closest('.card-status-wrap')||e.target.closest('.card-select-wrap')||e.target.closest('.jira-ticket-chip'))return;
     card.classList.toggle('expanded');
   });
 
@@ -1535,7 +1628,7 @@ function serializeCard(card){
   const ti=card.querySelector(':scope > .ticket-link-row .ticket-link-input');
   const tb=card.querySelector(':scope > .item-header .badge[data-role="type"]');
   const rt=card.querySelector(':scope > .item-header .reporter-tag');
-  const jiraBadge=card.querySelector(':scope > .item-header .badge-jira');
+  const jiraChip=card.querySelector(':scope > .item-header .jira-ticket-chip');
   const jiraDesc=card.querySelector(':scope > .jira-panel .jira-description');
 
   // Direct nest only — never pick a grandchild nest list
@@ -1559,7 +1652,8 @@ function serializeCard(card){
     notes:ta?ta.value:'',
     ticketUrl:ti?ti.value.trim():'',
     jira:card.classList.contains('jira-card'),
-    jiraKey:jiraBadge?jiraBadge.textContent.replace('⧉ ','').trim():'',
+    jiraKey:jiraChip?jiraChip.dataset.jiraKey||'':'',
+    jiraLink:jiraChip?jiraChip.dataset.jiraLink||'':'',
     jiraDesc:jiraDesc?jiraDesc.textContent:'',
     children,
   };
@@ -1612,6 +1706,7 @@ function buildCardFromSaved(item){
     ticketUrl:item.ticketUrl||'',
     jira:!!item.jira,
     jiraKey:item.jiraKey||'',
+    jiraLink:item.jiraLink||'',
     jiraDesc:item.jiraDesc||'',
   });
 
@@ -1835,6 +1930,7 @@ function addStatusOption(){
 /* ── Global close dropdowns ── */
 document.addEventListener('click',()=>{
   document.querySelectorAll('.status-dropdown.open').forEach(d=>d.classList.remove('open'));
+  document.querySelectorAll('.jira-link-pop.open').forEach(p=>p.classList.remove('open'));
 });
 
 /* ── My Tasks ── */
