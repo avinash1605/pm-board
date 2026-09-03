@@ -153,6 +153,22 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .ld-jira{background:#c7d2fe}
 .legend-item{font-size:11px;color:var(--text3);display:flex;align-items:center}
 .toolbar-hint{margin-left:auto;font-size:10px;color:var(--text4);font-family:'JetBrains Mono',monospace}
+.status-filter-wrap{display:flex;align-items:center;gap:6px;margin-left:4px;position:relative;flex-wrap:wrap}
+.status-filter-label{font-size:11px;color:var(--text3);font-weight:500}
+.status-filter-sel{font-size:11px;padding:4px 8px;border:1px solid var(--border2);border-radius:5px;background:var(--surface);color:var(--text1);outline:none;cursor:pointer;font-family:'Inter',sans-serif;max-width:150px}
+.status-filter-sel:focus{border-color:var(--accent)}
+.status-filter-clear{font-size:11px;padding:3px 8px;border-radius:5px;border:1px solid var(--border2);background:var(--surface);color:var(--text3);cursor:pointer;display:none;font-family:'Inter',sans-serif}
+.status-filter-clear.show{display:inline-flex}
+.status-filter-clear:hover{background:var(--surface2);color:var(--text2)}
+.status-filter-multi-btn{font-size:11px;padding:4px 8px;border:1px solid var(--border2);border-radius:5px;background:var(--surface);color:var(--text1);cursor:pointer;font-family:'Inter',sans-serif;max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.status-filter-multi-btn:hover{border-color:var(--border2);background:var(--surface2)}
+.status-filter-multi-btn.has-value{border-color:var(--accent-md);background:var(--accent-lt);color:var(--accent);font-weight:500}
+.status-filter-panel{display:none;position:absolute;top:calc(100% + 4px);left:0;z-index:60;min-width:180px;max-width:240px;background:var(--surface);border:1px solid var(--border2);border-radius:8px;box-shadow:var(--shadow-lg);padding:6px}
+.status-filter-panel.open{display:block}
+.status-filter-opt{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--text1)}
+.status-filter-opt:hover{background:var(--surface2)}
+.status-filter-opt input{accent-color:var(--accent);width:14px;height:14px;margin:0;flex-shrink:0}
+.item-card.status-filtered-out{display:none!important}
 
 /* Columns */
 .columns{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
@@ -602,6 +618,20 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
         <div class="legend-item"><span class="legend-dot ld-customer"></span> Customer</div>
         <div class="legend-item"><span class="legend-dot ld-internal"></span> Internal</div>
         <div class="legend-item"><span class="legend-dot ld-jira"></span> Jira</div>
+        <div class="status-filter-wrap" id="status-filter-wrap">
+          <span class="status-filter-label">Status</span>
+          <select class="status-filter-sel" id="status-filter-op" title="Condition">
+            <option value="any">any</option>
+            <option value="is">is</option>
+            <option value="is_not">is not</option>
+            <option value="in">is any of</option>
+            <option value="not_in">is none of</option>
+          </select>
+          <select class="status-filter-sel" id="status-filter-single" title="Status" style="display:none"></select>
+          <button type="button" class="status-filter-multi-btn" id="status-filter-multi-btn" style="display:none">Select statuses…</button>
+          <div class="status-filter-panel" id="status-filter-panel"></div>
+          <button type="button" class="status-filter-clear" id="status-filter-clear" title="Clear filter">Clear</button>
+        </div>
         <button id="select-mode-btn" style="margin-left:8px;font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer">☑ Select to Move</button>
         <div class="toolbar-hint">⠿ drag · hover top = subtask · double-click to edit</div>
       </div>
@@ -1199,7 +1229,7 @@ function buildStatusWidget(currentId){
       item.innerHTML='<span class="status-dd-dot" style="background:'+s.dot+'"></span>'+opt.label;
       item.addEventListener('click',e=>{
         e.stopPropagation();renderPill(opt.id);dd.classList.remove('open');
-        updateStats();saveBoardState();
+        updateStats();applyStatusFilter();saveBoardState();
       });
       dd.appendChild(item);
     });
@@ -1233,11 +1263,183 @@ function updateStats(){
     const pfx=area==='smartbot'?'sb':'zc';
     const col=document.getElementById(area+'-items');
     const secs=col.querySelectorAll('.board-section').length;
-    const cards=col.querySelectorAll('.sort-list > .item-card').length;
+    const cards=col.querySelectorAll('.sort-list > .item-card:not(.status-filtered-out)').length;
     document.getElementById(pfx+'-customer-pill').textContent=secs+' section'+(secs!==1?'s':'');
     document.getElementById(pfx+'-internal-pill').textContent=cards+' task'+(cards!==1?'s':'');
   });
+  applyStatusFilter();
 }
+
+/* ── Status filter (board-level) ── */
+let statusFilter={op:'any',values:[]};
+
+function statusFilterActive(){
+  if(statusFilter.op==='any')return false;
+  return statusFilter.values.length>0;
+}
+
+function cardMatchesStatusFilter(st){
+  const op=statusFilter.op;
+  const vals=statusFilter.values;
+  if(op==='any'||!vals.length)return true;
+  const inSet=vals.includes(st);
+  if(op==='is')return inSet;
+  if(op==='is_not')return !inSet;
+  if(op==='in')return inSet;
+  if(op==='not_in')return !inSet;
+  return true;
+}
+
+function statusFilterSummary(){
+  if(!statusFilterActive())return'';
+  const labels=statusFilter.values.map(id=>{
+    const opt=statusOptions.find(s=>s.id===id);
+    return opt?opt.label:id;
+  });
+  if(statusFilter.op==='is'||statusFilter.op==='is_not')return labels[0]||'';
+  if(labels.length<=2)return labels.join(', ');
+  return labels[0]+' +'+(labels.length-1);
+}
+
+function syncStatusFilterControls(){
+  const opEl=document.getElementById('status-filter-op');
+  const single=document.getElementById('status-filter-single');
+  const multiBtn=document.getElementById('status-filter-multi-btn');
+  const panel=document.getElementById('status-filter-panel');
+  const clearBtn=document.getElementById('status-filter-clear');
+  if(!opEl)return;
+
+  opEl.value=statusFilter.op||'any';
+  const op=statusFilter.op;
+  const needsValue=op!=='any';
+  const multi=op==='in'||op==='not_in';
+
+  if(single){
+    single.style.display=needsValue&&!multi?'':'none';
+    if(needsValue&&!multi){
+      single.value=statusFilter.values[0]||'';
+    }
+  }
+  if(multiBtn){
+    multiBtn.style.display=needsValue&&multi?'':'none';
+    const summary=statusFilterSummary();
+    multiBtn.textContent=summary||'Select statuses…';
+    multiBtn.classList.toggle('has-value',!!summary);
+  }
+  if(panel&&!(needsValue&&multi))panel.classList.remove('open');
+  if(clearBtn)clearBtn.classList.toggle('show',statusFilterActive());
+}
+
+function populateStatusFilter(){
+  const single=document.getElementById('status-filter-single');
+  const panel=document.getElementById('status-filter-panel');
+  if(!single||!panel)return;
+
+  // Prune removed statuses from filter values
+  statusFilter.values=statusFilter.values.filter(id=>statusOptions.some(s=>s.id===id));
+
+  single.innerHTML='<option value="">— Select —</option>';
+  statusOptions.forEach(s=>{
+    const o=document.createElement('option');
+    o.value=s.id;
+    o.textContent=s.label;
+    single.appendChild(o);
+  });
+
+  panel.innerHTML='';
+  statusOptions.forEach(s=>{
+    const row=document.createElement('label');
+    row.className='status-filter-opt';
+    const cb=document.createElement('input');
+    cb.type='checkbox';
+    cb.value=s.id;
+    cb.checked=statusFilter.values.includes(s.id);
+    cb.addEventListener('change',()=>{
+      if(cb.checked){
+        if(!statusFilter.values.includes(s.id))statusFilter.values.push(s.id);
+      }else{
+        statusFilter.values=statusFilter.values.filter(v=>v!==s.id);
+      }
+      syncStatusFilterControls();
+      applyStatusFilter();
+      refreshFilteredCounts();
+    });
+    const txt=document.createElement('span');
+    txt.textContent=s.label;
+    row.append(cb,txt);
+    panel.appendChild(row);
+  });
+
+  syncStatusFilterControls();
+}
+
+function refreshFilteredCounts(){
+  ['smartbot','zenchat'].forEach(area=>{
+    const pfx=area==='smartbot'?'sb':'zc';
+    const col=document.getElementById(area+'-items');
+    if(!col)return;
+    const cards=col.querySelectorAll('.sort-list > .item-card:not(.status-filtered-out)').length;
+    document.getElementById(pfx+'-internal-pill').textContent=cards+' task'+(cards!==1?'s':'');
+  });
+}
+
+function applyStatusFilter(){
+  document.querySelectorAll('#smartbot-items .item-card, #zenchat-items .item-card').forEach(card=>{
+    const hdr=card.querySelector(':scope > .item-header')||card.querySelector('.item-header');
+    const sw=hdr?hdr.querySelector('.card-status-wrap'):null;
+    const st=sw?sw.dataset.st||'none':'none';
+    const show=cardMatchesStatusFilter(st);
+    card.classList.toggle('status-filtered-out',!show);
+  });
+  syncStatusFilterControls();
+}
+
+function clearStatusFilter(){
+  statusFilter={op:'any',values:[]};
+  const panel=document.getElementById('status-filter-panel');
+  if(panel){
+    panel.querySelectorAll('input[type=checkbox]').forEach(cb=>{cb.checked=false;});
+    panel.classList.remove('open');
+  }
+  syncStatusFilterControls();
+  applyStatusFilter();
+  updateStats();
+}
+
+document.getElementById('status-filter-op').addEventListener('change',e=>{
+  const op=e.target.value||'any';
+  statusFilter.op=op;
+  if(op==='any'){
+    statusFilter.values=[];
+  }else if((op==='is'||op==='is_not')&&statusFilter.values.length>1){
+    statusFilter.values=statusFilter.values.slice(0,1);
+  }
+  document.getElementById('status-filter-panel')?.classList.remove('open');
+  syncStatusFilterControls();
+  applyStatusFilter();
+  refreshFilteredCounts();
+});
+
+document.getElementById('status-filter-single').addEventListener('change',e=>{
+  const v=e.target.value||'';
+  statusFilter.values=v?[v]:[];
+  syncStatusFilterControls();
+  applyStatusFilter();
+  refreshFilteredCounts();
+});
+
+document.getElementById('status-filter-multi-btn').addEventListener('click',e=>{
+  e.stopPropagation();
+  document.getElementById('status-filter-panel').classList.toggle('open');
+});
+
+document.getElementById('status-filter-clear').addEventListener('click',clearStatusFilter);
+
+document.addEventListener('click',e=>{
+  if(!e.target.closest('#status-filter-wrap')){
+    document.getElementById('status-filter-panel')?.classList.remove('open');
+  }
+});
 
 /* ── Edit modal ── */
 const editModal=document.getElementById('edit-modal');
@@ -1270,6 +1472,7 @@ document.getElementById('edit-save').addEventListener('click',async()=>{
   activeEditCard.addEventListener('animationend',()=>activeEditCard&&activeEditCard.classList.remove('moved-flash'),{once:true});
   updateStats();
   await saveBoardState();
+  applyStatusFilter();
   closeEdit();
 });
 
@@ -1887,7 +2090,7 @@ function renderStatusSettings(){
     row.innerHTML=`<div class="status-color-swatch" style="background:${s.dot}"></div><div class="status-option-label">${s.label}</div><div><button class="stn-btn danger">Remove</button></div>`;
     row.querySelector('.danger').addEventListener('click',()=>{
       if(statusOptions.length<=1)return;
-      statusOptions.splice(i,1);renderStatusSettings();
+      statusOptions.splice(i,1);renderStatusSettings();populateStatusFilter();applyStatusFilter();
     });
     list.appendChild(row);
   });
@@ -1897,6 +2100,7 @@ function renderStatusSettings(){
     ch.style.background=c;ch.addEventListener('click',()=>{selColor=c;document.querySelectorAll('.color-chip').forEach(x=>x.classList.remove('selected'));ch.classList.add('selected');});
     cp.appendChild(ch);
   });
+  populateStatusFilter();
 }
 
 function addStatusOption(){
@@ -1905,7 +2109,7 @@ function addStatusOption(){
   const id=label.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
   if(statusOptions.find(s=>s.id===id))return;
   statusOptions.push({id,label,dot:selColor});
-  input.value='';renderStatusSettings();
+  input.value='';renderStatusSettings();populateStatusFilter();
 }
 
 /* ── Global close dropdowns ── */
@@ -2092,6 +2296,7 @@ function updateMyTasksBadge(){
   renderSprintList();
   updateTopbar();
   renderStatusSettings();
+  populateStatusFilter();
   populateSelect(document.getElementById('edit-status-sel'),'none');
   renderMyTasks();
   updateMyTasksBadge();
