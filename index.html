@@ -254,15 +254,6 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .status-dd-item.active{font-weight:600}
 .status-dd-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
 
-/* Ticket link */
-.ticket-link-row{display:none;align-items:center;gap:6px;padding:5px 11px 7px 52px;border-top:1px dashed var(--border);background:var(--bg)}
-.ticket-link-row.show{display:flex}
-.ticket-link-label{font-size:10px;font-weight:600;color:var(--purple);white-space:nowrap}
-.ticket-link-input{flex:1;font-size:11px;padding:3px 7px;border:1px solid var(--border2);border-radius:4px;outline:none;font-family:'Inter',sans-serif;color:var(--text1);background:var(--surface)}
-.ticket-link-input:focus{border-color:var(--purple)}
-.ticket-link-input::placeholder{color:var(--text4)}
-.ticket-link-go{font-size:10px;color:var(--accent);padding:3px 7px;border:1px solid var(--accent-md);border-radius:4px;background:var(--accent-lt);text-decoration:none;white-space:nowrap}
-
 /* Notes panel */
 .notes-panel,.jira-panel{display:none;border-top:1px solid var(--border);background:var(--bg);padding:11px 11px 12px 52px}
 .item-card.expanded .notes-panel,.item-card.expanded .jira-panel{display:block}
@@ -1204,12 +1195,6 @@ function buildStatusWidget(currentId){
       item.innerHTML='<span class="status-dd-dot" style="background:'+s.dot+'"></span>'+opt.label;
       item.addEventListener('click',e=>{
         e.stopPropagation();renderPill(opt.id);dd.classList.remove('open');
-        const card=wrap.closest('.item-card');
-        if(card){
-          // Only toggle this card's own ticket row (not nested children's)
-          const tlr=card.querySelector(':scope > .ticket-link-row');
-          if(tlr)tlr.classList.toggle('show',opt.id==='ticket-created');
-        }
         updateStats();saveBoardState();
       });
       dd.appendChild(item);
@@ -1270,8 +1255,6 @@ document.getElementById('edit-save').addEventListener('click',async()=>{
   if(tb){tb.className='badge '+typeClass[ty];tb.setAttribute('data-role','type');tb.textContent=typeLabels[ty];}
   const sw=activeEditCard.querySelector('.card-status-wrap');
   if(sw){sw.dataset.st=st;const pill=sw.querySelector('.status-pill');if(pill){const s=getStatusStyle(st);pill.className='status-pill '+s.cls;pill.innerHTML='<span>'+s.label+'</span><span class="status-pill-arrow">▾</span>';}}
-  const tlr=activeEditCard.querySelector(':scope > .ticket-link-row');
-  if(tlr)tlr.classList.toggle('show',st==='ticket-created');
   const meta=activeEditCard.querySelector('.item-meta');
   let rt=activeEditCard.querySelector('.reporter-tag');
   if(cu){if(!rt){rt=document.createElement('span');rt.className='reporter-tag';meta.appendChild(rt);}rt.textContent='🏢 '+cu;}else if(rt)rt.remove();
@@ -1427,8 +1410,9 @@ function buildCard(item){
     '</div>';
 
   // Jira ticket ID on card (link appears on click)
+  // Prefer jiraLink; fall back to legacy ticketUrl if present
   const jiraKey=item.jiraKey||'';
-  const jiraLink=item.jiraLink||'';
+  const jiraLink=item.jiraLink||item.ticketUrl||'';
   if(jiraKey){
     const chip=buildJiraTicketChip(jiraKey,jiraLink);
     const meta=hdr.querySelector('.item-meta');
@@ -1460,27 +1444,6 @@ function buildCard(item){
 
   card.addEventListener('dragstart',e=>{dragCard=card;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',card.dataset.id);});
   card.addEventListener('dragend',()=>{card&&card.classList&&card.classList.remove('dragging');document.querySelectorAll('.sort-list').forEach(l=>l.classList.remove('drag-over'));dragCard=null;});
-
-  // ticket link row — visible whenever status is Ticket Created
-  const tlRow=document.createElement('div');tlRow.className='ticket-link-row';
-  if((item.st||'none')==='ticket-created')tlRow.classList.add('show');
-  tlRow.innerHTML='<span class="ticket-link-label">🎫 Ticket URL</span><input class="ticket-link-input" type="url" placeholder="Paste Jira / ticket link…">';
-  const goA=document.createElement('a');goA.className='ticket-link-go';goA.textContent='Open';goA.target='_blank';goA.href='#';
-  const ticketInput=tlRow.querySelector('input');
-  if(item.ticketUrl){ticketInput.value=item.ticketUrl;goA.href=item.ticketUrl;}
-  ticketInput.addEventListener('input',e=>{
-    goA.href=e.target.value||'#';
-    debouncedSave();
-  });
-  ticketInput.addEventListener('blur',async e=>{
-    try{await store.set('ticket:'+item.id,e.target.value);}catch(err){}
-    saveBoardState();
-  });
-  tlRow.appendChild(goA);
-  // Fallback: older sessions stored URL under ticket:<id> only
-  if(!item.ticketUrl){
-    (async()=>{try{const r=await store.get('ticket:'+item.id);if(r?.value){ticketInput.value=r.value;goA.href=r.value;if((item.st||'none')==='ticket-created')saveBoardState();}}catch(err){}})();
-  }
 
   // panel
   const panel=document.createElement('div');
@@ -1517,7 +1480,7 @@ function buildCard(item){
   const nestList=document.createElement('div');nestList.className='sort-list';nestList.dataset.bucket=item.source;
   nestWrap.appendChild(nestList);
 
-  card.append(hdr,tlRow,panel,nestWrap);
+  card.append(hdr,panel,nestWrap);
   return card;
 }
 
@@ -1625,7 +1588,6 @@ function serializeCard(card){
   if(!card||!card.classList.contains('item-card'))return null;
   const sw=card.querySelector(':scope > .item-header .card-status-wrap');
   const ta=card.querySelector(':scope > .notes-panel textarea, :scope > .jira-panel textarea');
-  const ti=card.querySelector(':scope > .ticket-link-row .ticket-link-input');
   const tb=card.querySelector(':scope > .item-header .badge[data-role="type"]');
   const rt=card.querySelector(':scope > .item-header .reporter-tag');
   const jiraChip=card.querySelector(':scope > .item-header .jira-ticket-chip');
@@ -1642,6 +1604,9 @@ function serializeCard(card){
     });
   }
 
+  const jiraKey=jiraChip?jiraChip.dataset.jiraKey||'':'';
+  const jiraLink=jiraChip?jiraChip.dataset.jiraLink||'':'';
+
   return {
     id:card.dataset.id||('T-'+Date.now()),
     source:card.dataset.source||'internal',
@@ -1650,10 +1615,9 @@ function serializeCard(card){
     st:sw?sw.dataset.st:'none',
     customer:rt?rt.textContent.replace(/^[🏢👤]\s*/u,'').trim():'',
     notes:ta?ta.value:'',
-    ticketUrl:ti?ti.value.trim():'',
     jira:card.classList.contains('jira-card'),
-    jiraKey:jiraChip?jiraChip.dataset.jiraKey||'':'',
-    jiraLink:jiraChip?jiraChip.dataset.jiraLink||'':'',
+    jiraKey,
+    jiraLink,
     jiraDesc:jiraDesc?jiraDesc.textContent:'',
     children,
   };
@@ -1706,19 +1670,9 @@ function buildCardFromSaved(item){
     ticketUrl:item.ticketUrl||'',
     jira:!!item.jira,
     jiraKey:item.jiraKey||'',
-    jiraLink:item.jiraLink||'',
+    jiraLink:item.jiraLink||item.ticketUrl||'',
     jiraDesc:item.jiraDesc||'',
   });
-
-  // Ensure ticket row visibility from status (URL may be empty)
-  const tlr=card.querySelector(':scope > .ticket-link-row');
-  if(tlr&&(item.st||'none')==='ticket-created')tlr.classList.add('show');
-  if(item.ticketUrl){
-    const ti=card.querySelector(':scope > .ticket-link-row .ticket-link-input');
-    const ga=card.querySelector(':scope > .ticket-link-row .ticket-link-go');
-    if(ti)ti.value=item.ticketUrl;
-    if(ga)ga.href=item.ticketUrl;
-  }
 
   // Restore nested children recursively
   if(children.length>0){
