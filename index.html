@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>PM Sprint Board</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Sortable/1.15.2/Sortable.min.js"></script>
 <style>
@@ -216,8 +216,23 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .item-id{font-family:'JetBrains Mono',monospace;font-size:9px;color:var(--text4);min-width:42px;padding-top:2px;flex-shrink:0}
 .item-body{flex:1;min-width:0}
 .item-title{font-size:12px;font-weight:500;color:var(--text1);line-height:1.4;margin-bottom:4px}
-.item-meta{display:flex;align-items:center;gap:4px;flex-wrap:wrap}
+.item-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .item-right{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-top:1px}
+.item-card.is-collapsed > .item-header .item-meta{display:none}
+.item-card.is-collapsed > .item-header .item-title{margin-bottom:0}
+.item-card.is-collapsed > .item-header{padding-top:7px;padding-bottom:7px}
+.item-card.is-collapsed .card-collapse-btn{transform:rotate(-90deg)}
+.card-collapse-btn,.nest-toggle{
+  display:inline-flex;align-items:center;justify-content:center;gap:3px;
+  height:20px;min-width:20px;padding:0 6px;box-sizing:border-box;
+  border:1px solid var(--border);border-radius:4px;background:var(--surface);
+  color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;
+  flex-shrink:0;line-height:1;transition:background .12s,color .12s,border-color .12s,transform .15s;
+}
+.card-collapse-btn:hover,.nest-toggle:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
+.nest-toggle{color:var(--accent);border-color:#c7d2fe;background:#eef2ff;min-width:28px}
+.nest-toggle:hover{background:#e0e7ff;border-color:#a5b4fc}
+.nest-toggle.is-collapsed{opacity:.85}
 .chevron{color:var(--text4);font-size:9px;transition:transform .18s}
 .item-card.expanded .chevron{transform:rotate(180deg)}
 
@@ -230,18 +245,25 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .add-task-btn{font-size:11px;font-weight:500;color:var(--accent);background:var(--accent-lt);border:1px solid var(--accent-md);border-radius:var(--radius);padding:3px 9px;cursor:pointer;font-family:'Inter',sans-serif;transition:background .12s}
 .add-task-btn:hover{background:var(--accent-md)}
 
-/* ── Badges ── */
-.badge{font-size:10px;font-weight:500;padding:1px 6px;border-radius:3px;border:1px solid}
+/* ── Badges / chips (uniform height) ── */
+.card-chip,.badge,.reporter-tag,.jira-id-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  height:20px;min-height:20px;max-height:20px;padding:0 7px;box-sizing:border-box;
+  font-size:10px;font-weight:600;line-height:1;letter-spacing:.2px;
+  border-radius:4px;border:1px solid;white-space:nowrap;vertical-align:middle;font-family:inherit;
+}
+.badge{font-weight:500}
 .badge-new       {color:#065f46;background:#ecfdf5;border-color:#a7f3d0}
 .badge-enhance   {color:#3730a3;background:#eef2ff;border-color:#c7d2fe}
 .badge-bug       {color:#991b1b;background:#fef2f2;border-color:#fecaca}
 .badge-infra     {color:#92400e;background:#fffbeb;border-color:#fde68a}
 .badge-compliance{color:#1e40af;background:#eff6ff;border-color:#bfdbfe}
 .badge-triage    {color:#374151;background:#f9fafb;border-color:#e5e7eb}
-.badge-jira{color:#4338ca;background:#eef2ff;border-color:#c7d2fe;font-family:'JetBrains Mono',monospace}
+.badge-jira{color:#4338ca;background:#eef2ff;border-color:#c7d2fe;font-family:'JetBrains Mono',monospace;font-weight:700}
 .jira-ticket-chip{position:relative;display:inline-flex;align-items:center;vertical-align:middle}
-.jira-id-btn{cursor:pointer;font:inherit;line-height:inherit;appearance:none}
-.jira-id-btn:hover{opacity:.85}
+.jira-id-btn{cursor:pointer;appearance:none;transition:background .12s,border-color .12s,opacity .12s}
+.jira-id-btn:hover{background:#e0e7ff;border-color:#a5b4fc}
+.jira-id-btn.has-link{text-decoration:underline;text-underline-offset:2px}
 .jira-link-pop{display:none;position:absolute;left:0;top:calc(100% + 4px);z-index:40;min-width:180px;max-width:280px;padding:7px 9px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;box-shadow:var(--shadow-md)}
 .jira-link-pop.open{display:block}
 .jira-link-pop-a{font-size:11px;color:var(--accent);word-break:break-all;text-decoration:none;line-height:1.4}
@@ -250,11 +272,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .jira-link-pop-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.05em;color:var(--text4);margin-bottom:3px}
 
 /* Customer tag */
-.reporter-tag{font-size:10px;color:var(--text2);background:var(--surface2);border:1px solid var(--border);border-radius:3px;padding:1px 6px}
+.reporter-tag{color:var(--text2);background:var(--surface2);border-color:var(--border);font-weight:500}
 
 /* ── Status pill (custom dropdown) ── */
 .card-status-wrap{position:relative;flex-shrink:0}
-.status-pill{display:inline-flex;align-items:center;gap:3px;font-size:10px;font-weight:500;padding:2px 7px;border-radius:8px;border:1px solid;cursor:pointer;user-select:none;white-space:nowrap;line-height:1.4;transition:opacity .12s}
+.status-pill{display:inline-flex;align-items:center;justify-content:center;gap:3px;height:20px;min-height:20px;max-height:20px;box-sizing:border-box;font-size:10px;font-weight:500;padding:0 7px;border-radius:4px;border:1px solid;cursor:pointer;user-select:none;white-space:nowrap;line-height:1;transition:opacity .12s}
 .status-pill:hover{opacity:.75}
 .status-pill-arrow{font-size:7px;opacity:.5}
 .snone      {color:var(--text4);background:var(--surface2);border-color:var(--border)}
@@ -284,6 +306,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 
 /* Subtask nest */
 .subtask-nest{margin-left:14px;margin-top:2px;margin-bottom:3px;border-left:1.5px solid var(--border2);padding-left:9px}
+.subtask-nest.is-collapsed{display:none !important}
 .subtask-nest .item-card{margin-bottom:3px;background:var(--bg)}
 .subtask-nest .item-title{font-size:11px!important}
 .subtask-nest .item-id{font-size:9px!important;min-width:34px!important}
@@ -399,8 +422,127 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .delete-confirm-row{display:flex;align-items:center;gap:7px;width:100%;margin-top:2px;padding-top:8px;border-top:1px solid var(--border)}
 
 .footer{padding:12px 20px;font-size:10px;color:var(--text4);font-family:'JetBrains Mono',monospace;border-top:1px solid var(--border);background:var(--surface);text-align:center;flex-shrink:0}
-@media(max-width:860px){.columns{grid-template-columns:1fr}.topbar-right{display:none}}
-</style>
+
+/* ── Mobile menu button + backdrop ── */
+.mobile-menu-btn{
+  display:none;align-items:center;justify-content:center;
+  width:36px;height:36px;flex-shrink:0;border-radius:8px;
+  border:1px solid var(--border);background:var(--surface);color:var(--text1);
+  font-size:18px;line-height:1;cursor:pointer;padding:0;
+}
+.mobile-menu-btn:hover{background:var(--surface2)}
+.sidebar-backdrop{
+  display:none;position:fixed;inset:0;background:rgba(17,24,39,.4);
+  z-index:180;backdrop-filter:blur(1px);-webkit-backdrop-filter:blur(1px);
+}
+.sidebar-backdrop.open{display:block}
+
+/* ── Responsive ── */
+@media(max-width:900px){
+  .columns{grid-template-columns:1fr;gap:22px}
+  .topbar-right{display:none}
+  .toolbar-hint{display:none}
+}
+@media(max-width:768px){
+  html,body{height:100%;overflow:hidden}
+  body.nav-open{overflow:hidden}
+  .app{height:100%;min-height:100dvh;overflow:hidden}
+
+  .mobile-menu-btn{display:inline-flex}
+  .sidebar-backdrop.open{display:block}
+
+  .sidebar{
+    position:fixed;left:0;top:0;bottom:0;
+    width:min(300px,88vw);min-width:0;max-width:300px;
+    height:100%;height:100dvh;
+    transform:translateX(-105%);
+    transition:transform .22s ease;
+    box-shadow:none;border-right:1px solid var(--border);
+    z-index:200;padding-bottom:env(safe-area-inset-bottom,0);
+  }
+  .sidebar.collapsed{
+    width:min(300px,88vw);min-width:0;
+  }
+  .sidebar.collapsed .logo-text,
+  .sidebar.collapsed .nav-label,
+  .sidebar.collapsed .nav-badge,
+  .sidebar.collapsed .sidebar-section-label,
+  .sidebar.collapsed .sprint-item-text,
+  .sidebar.collapsed .board-kind-label,
+  .sidebar.collapsed .new-sprint-btn .btn-label{opacity:1;pointer-events:auto}
+  .sidebar.collapsed .nav-item::after{display:none}
+  .sidebar.mobile-open{
+    transform:translateX(0);
+    box-shadow:var(--shadow-lg);
+  }
+  .collapse-btn{font-size:14px}
+
+  .main-wrap{width:100%;min-width:0;height:100%;min-height:0}
+  .topbar{
+    padding:8px 12px;padding-left:max(12px,env(safe-area-inset-left));
+    padding-right:max(12px,env(safe-area-inset-right));
+    min-height:48px;gap:8px;flex-wrap:wrap;
+  }
+  .topbar-left{flex:1;gap:6px;flex-wrap:wrap}
+  .topbar-title{font-size:13px;max-width:42vw}
+  .sprint-chip{font-size:9px;padding:2px 5px}
+  .topbar-dates,.prog-wrap,.live-dot{display:none}
+
+  .move-bar{
+    padding:8px 12px;flex-wrap:wrap;gap:8px;
+  }
+  .move-bar-text{flex:1 1 100%}
+  .move-bar-select{flex:1;min-width:0;max-width:100%}
+
+  .page{
+    padding:12px;
+    padding-bottom:max(12px,env(safe-area-inset-bottom));
+    -webkit-overflow-scrolling:touch;
+    min-height:0;
+  }
+  .board-toolbar{gap:6px;margin-bottom:12px}
+  .status-filter-wrap{margin-left:0;width:100%}
+  .status-filter-sel,.status-filter-multi-btn{max-width:100%;flex:1}
+  .status-filter-panel{left:0;right:0;max-width:none;min-width:0}
+
+  .item-header{padding:10px;gap:6px}
+  .item-id{min-width:36px;font-size:8px}
+  .item-title{font-size:12px}
+  .drag-handle,.edit-btn,.add-btn-sm{opacity:1}
+  .subtask-nest{margin-left:8px;padding-left:6px}
+  .item-right{flex-wrap:wrap;justify-content:flex-end;max-width:46%}
+  .card-status-wrap .status-pill{max-width:100%}
+
+  .field-row{grid-template-columns:1fr}
+  .modal-overlay{align-items:flex-end;padding:0}
+  .modal{
+    width:100%;max-width:100vw;max-height:92dvh;
+    border-radius:14px 14px 0 0;border-left:none;border-right:none;border-bottom:none;
+    margin:0;
+  }
+  .modal-footer{flex-wrap:wrap;padding-bottom:max(15px,env(safe-area-inset-bottom))}
+  .btn-danger{margin-left:0}
+
+  .mytasks-header{flex-direction:column;align-items:flex-start;gap:10px}
+  .mytask-row{flex-wrap:wrap;gap:6px 10px}
+  .mytask-actions{opacity:1}
+  .mytask-due{width:100%;order:5;padding-left:26px}
+  .footer{padding:10px 12px;font-size:9px}
+
+  .new-menu{left:0;right:auto;min-width:220px;bottom:calc(100% + 6px)}
+}
+@media(max-width:420px){
+  .legend-item{font-size:10px}
+  .col-pill{font-size:9px}
+  #select-mode-btn{font-size:10px;padding:3px 7px}
+}
+@media(hover:none) and (pointer:coarse){
+  .drag-handle,.edit-btn,.add-btn-sm,.mytask-actions{opacity:1}
+  .nav-item,.sprint-item,.card-collapse-btn,.nest-toggle,.status-pill,.edit-btn{
+    min-height:36px;
+  }
+  .status-pill{padding:0 8px}
+}
 </head>
 <body>
 
@@ -534,6 +676,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 </div>
 
 <div class="app">
+  <div class="sidebar-backdrop" id="sidebar-backdrop" aria-hidden="true"></div>
   <!-- Sidebar -->
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
@@ -585,6 +728,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
   <div class="main-wrap">
     <div class="topbar">
       <div class="topbar-left">
+        <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" title="Open menu" aria-label="Open menu">☰</button>
         <div class="topbar-title" id="topbar-title">Sprint 1</div>
         <span class="sprint-chip" id="topbar-chip">Sprint 1</span>
         <span class="topbar-dates" id="topbar-dates"></span>
@@ -633,7 +777,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
           <button type="button" class="status-filter-clear" id="status-filter-clear" title="Clear filter">Clear</button>
         </div>
         <button id="select-mode-btn" style="margin-left:8px;font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer">☑ Select to Move</button>
-        <div class="toolbar-hint">⠿ drag · hover top = subtask · double-click to edit</div>
+        <div class="toolbar-hint">⠿ drag · hover top = subtask · ▾ collapse · double-click to edit</div>
       </div>
       <div class="columns">
         <div>
@@ -791,12 +935,73 @@ const typeLabels={bug:"Bug",new:"New",enhance:"Enhancement",infra:"Infra",compli
 let activeEditCard=null,addTargetArea=null,idCounter=400,nestTarget=null;
 let selectMode=false;
 
-/* ── Sidebar collapse ── */
+/* ── Sidebar collapse / mobile drawer ── */
 const sidebar=document.getElementById('sidebar');
 const collapseBtn=document.getElementById('collapse-btn');
+const mobileMenuBtn=document.getElementById('mobile-menu-btn');
+const sidebarBackdrop=document.getElementById('sidebar-backdrop');
+const MOBILE_NAV_MQ=window.matchMedia('(max-width:768px)');
+
+function isMobileNav(){return MOBILE_NAV_MQ.matches;}
+
+function closeMobileNav(){
+  sidebar.classList.remove('mobile-open');
+  document.body.classList.remove('nav-open');
+  if(sidebarBackdrop){
+    sidebarBackdrop.classList.remove('open');
+    sidebarBackdrop.setAttribute('aria-hidden','true');
+  }
+  if(isMobileNav())collapseBtn.textContent='✕';
+}
+
+function openMobileNav(){
+  if(!isMobileNav())return;
+  sidebar.classList.remove('collapsed');
+  sidebar.classList.add('mobile-open');
+  document.body.classList.add('nav-open');
+  if(sidebarBackdrop){
+    sidebarBackdrop.classList.add('open');
+    sidebarBackdrop.setAttribute('aria-hidden','false');
+  }
+  collapseBtn.textContent='✕';
+}
+
+function toggleMobileNav(){
+  if(sidebar.classList.contains('mobile-open'))closeMobileNav();
+  else openMobileNav();
+}
+
 collapseBtn.addEventListener('click',()=>{
+  if(isMobileNav()){
+    closeMobileNav();
+    return;
+  }
   sidebar.classList.toggle('collapsed');
   collapseBtn.textContent=sidebar.classList.contains('collapsed')?'▶':'◀';
+});
+
+if(mobileMenuBtn)mobileMenuBtn.addEventListener('click',e=>{e.stopPropagation();toggleMobileNav();});
+if(sidebarBackdrop)sidebarBackdrop.addEventListener('click',closeMobileNav);
+
+function syncNavForViewport(){
+  if(isMobileNav()){
+    closeMobileNav();
+    collapseBtn.textContent='✕';
+    collapseBtn.title='Close menu';
+  }else{
+    document.body.classList.remove('nav-open');
+    sidebar.classList.remove('mobile-open');
+    if(sidebarBackdrop)sidebarBackdrop.classList.remove('open');
+    collapseBtn.textContent=sidebar.classList.contains('collapsed')?'▶':'◀';
+    collapseBtn.title='Toggle sidebar';
+  }
+}
+if(MOBILE_NAV_MQ.addEventListener)MOBILE_NAV_MQ.addEventListener('change',syncNavForViewport);
+else if(MOBILE_NAV_MQ.addListener)MOBILE_NAV_MQ.addListener(syncNavForViewport);
+syncNavForViewport();
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'&&sidebar.classList.contains('mobile-open'))closeMobileNav();
 });
 
 /* ── Page nav ── */
@@ -812,8 +1017,12 @@ function showPage(id,btn){
   // Board chrome (stats / move) only meaningful on the board page
   const topRight=document.querySelector('.topbar-right');
   const moveBarEl=document.getElementById('move-bar');
-  if(topRight)topRight.style.display=id==='board'?'':'none';
+  if(topRight){
+    if(id==='board')topRight.style.removeProperty('display');
+    else topRight.style.display='none';
+  }
   if(id!=='board'&&moveBarEl)moveBarEl.classList.remove('show');
+  closeMobileNav();
 }
 
 /* ── Helpers ── */
@@ -1644,6 +1853,77 @@ function setJiraTicketChip(card,jiraKey,jiraLink){
   }
 }
 
+/* ── Nest / card collapse chrome ── */
+function nestChildCount(card){
+  const nest=card.querySelector(':scope > .subtask-nest');
+  const list=nest?nest.querySelector(':scope > .sort-list'):null;
+  if(!list)return 0;
+  return Array.from(list.children).filter(c=>c.classList&&c.classList.contains('item-card')).length;
+}
+
+function updateNestToggleLabel(btn,nest,count){
+  const collapsed=nest.classList.contains('is-collapsed');
+  btn.textContent=(collapsed?'▶ ':'▼ ')+count;
+  btn.title=collapsed?'Show subtasks':'Hide subtasks';
+  btn.classList.toggle('is-collapsed',collapsed);
+}
+
+function refreshNestChrome(card){
+  if(!card||!card.classList.contains('item-card'))return;
+  const nest=card.querySelector(':scope > .subtask-nest');
+  if(!nest)return;
+  const right=card.querySelector(':scope > .item-header .item-right');
+  if(!right)return;
+  const count=nestChildCount(card);
+  let btn=right.querySelector(':scope > .nest-toggle');
+
+  if(count===0){
+    nest.style.display='none';
+    nest.classList.remove('is-collapsed');
+    if(btn)btn.remove();
+    return;
+  }
+
+  if(!btn){
+    btn=document.createElement('button');
+    btn.type='button';
+    btn.className='nest-toggle';
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      nest.classList.toggle('is-collapsed');
+      const n=nestChildCount(card);
+      updateNestToggleLabel(btn,nest,n);
+      nest.style.display=nest.classList.contains('is-collapsed')?'none':'block';
+    });
+    const editBtn=right.querySelector('.edit-btn');
+    if(editBtn)right.insertBefore(btn,editBtn);
+    else right.appendChild(btn);
+  }
+
+  if(nest.classList.contains('is-collapsed')){
+    nest.style.display='none';
+  }else{
+    nest.style.display='block';
+  }
+  updateNestToggleLabel(btn,nest,count);
+}
+
+function wireCardCollapse(card,hdr){
+  const right=hdr.querySelector('.item-right');
+  if(!right||right.querySelector('.card-collapse-btn'))return;
+  const btn=document.createElement('button');
+  btn.type='button';
+  btn.className='card-collapse-btn';
+  btn.title='Collapse / expand details';
+  btn.textContent='▾';
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    card.classList.toggle('is-collapsed');
+    btn.title=card.classList.contains('is-collapsed')?'Expand details':'Collapse details';
+  });
+  right.insertBefore(btn,right.firstChild);
+}
+
 /* ── Build card ── */
 function buildCard(item){
   const isJira=item.jira;
@@ -1688,10 +1968,12 @@ function buildCard(item){
   const sw=buildStatusWidget(item.st||'none');
   hdr.querySelector('.item-right').insertBefore(sw,hdr.querySelector('.edit-btn'));
 
+  wireCardCollapse(card,hdr);
+
   hdr.querySelector('.edit-btn').addEventListener('click',e=>{e.stopPropagation();openEditModal(card);});
   // Double-click opens full task metadata (notes live in the edit modal)
   hdr.addEventListener('dblclick',e=>{
-    if(e.target.closest('.drag-handle')||e.target.closest('.edit-btn')||e.target.closest('.card-status-wrap')||e.target.closest('.card-select-wrap')||e.target.closest('.jira-ticket-chip'))return;
+    if(e.target.closest('.drag-handle')||e.target.closest('.edit-btn')||e.target.closest('.card-status-wrap')||e.target.closest('.card-select-wrap')||e.target.closest('.jira-ticket-chip')||e.target.closest('.card-collapse-btn')||e.target.closest('.nest-toggle'))return;
     e.preventDefault();
     openEditModal(card);
   });
@@ -1710,7 +1992,7 @@ function buildCard(item){
   }
 
   // subtask nest
-  const nestWrap=document.createElement('div');nestWrap.className='subtask-nest';nestWrap.style.display='none';
+  const nestWrap=document.createElement('div');nestWrap.className='subtask-nest is-collapsed';nestWrap.style.display='none';
   const nestList=document.createElement('div');nestList.className='sort-list';nestList.dataset.bucket=item.source;
   nestWrap.appendChild(nestList);
 
@@ -1912,10 +2194,13 @@ function buildCardFromSaved(item){
       children.forEach(child=>{
         nestList.appendChild(buildCardFromSaved(child));
       });
-      nestWrap.style.display='block';
+      // Keep nests collapsed by default so the board stays compact
+      nestWrap.classList.add('is-collapsed');
+      nestWrap.style.display='none';
       if(!nestList._s){nestList._s=true;makeSortable(nestList);}
     }
   }
+  refreshNestChrome(card);
 
   return card;
 }
@@ -2063,16 +2348,14 @@ function makeSortable(list){
         if(nl&&!nl.contains(evt.item)){
           evt.item.parentNode?.removeChild(evt.item);
           nl.appendChild(evt.item);
+          nw.classList.remove('is-collapsed');
           nw.style.display='block';
           if(!nl._s){nl._s=true;makeSortable(nl);}
+          refreshNestChrome(nestTarget);
         }
         nestTarget=null;
       }
-      document.querySelectorAll('.subtask-nest').forEach(w=>{
-        const list=w.querySelector(':scope > .sort-list');
-        if(!list||list.children.length===0)w.style.display='none';
-        else w.style.display='block';
-      });
+      document.querySelectorAll('.item-card').forEach(c=>refreshNestChrome(c));
       updateStats();
       // Persist nest structure immediately so a refresh/live sync keeps subtasks
       saveBoardState();
