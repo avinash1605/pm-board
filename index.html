@@ -316,18 +316,26 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .board-section-name{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text3);border:none;background:none;outline:none;cursor:text;border-radius:3px;padding:1px 4px;margin:-1px -4px;font-family:'Inter',sans-serif}
 .board-section-name:focus{background:var(--surface2);color:var(--text1)}
 .board-section-line{flex:1;height:1px;background:var(--border)}
-.board-section-actions{display:flex;gap:2px;opacity:0;transition:opacity .12s}
-.board-section-header:hover .board-section-actions{opacity:1}
-.sec-btn{width:18px;height:18px;border-radius:3px;border:none;background:none;cursor:pointer;color:var(--text4);font-size:10px;display:flex;align-items:center;justify-content:center;padding:0}
-.sec-btn:hover{background:var(--surface2);color:var(--text2)}
-.sec-btn.del:hover{background:var(--red-lt);color:var(--red)}
-.sec-add-row{display:none;align-items:center;gap:5px;margin-top:4px}
+.board-section-actions{display:flex;gap:2px;opacity:1;flex-shrink:0}
+.sec-btn{width:22px;height:22px;border-radius:4px;border:1px solid var(--border);background:var(--surface);cursor:pointer;color:var(--text3);font-size:12px;display:flex;align-items:center;justify-content:center;padding:0;transition:background .12s,color .12s,border-color .12s}
+.sec-btn:hover{background:var(--surface2);color:var(--text2);border-color:var(--border2)}
+.sec-btn.del:hover{background:var(--red-lt);color:var(--red);border-color:var(--red-bd)}
+.sec-btn.add-task{color:var(--accent);border-color:var(--accent-md);background:var(--accent-lt);font-weight:600}
+.sec-btn.add-task:hover{background:var(--accent-md);color:var(--accent)}
+.sec-add-row{display:none;align-items:center;gap:5px;margin-top:4px;flex-wrap:wrap}
 .sec-add-row.open{display:flex}
-.sec-add-input{flex:1;font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:5px;outline:none;font-family:'Inter',sans-serif;color:var(--text1);background:var(--surface)}
+.sec-add-input{flex:1;min-width:120px;font-size:12px;padding:5px 8px;border:1px solid var(--border2);border-radius:5px;outline:none;font-family:'Inter',sans-serif;color:var(--text1);background:var(--surface)}
 .sec-add-input:focus{border-color:var(--accent)}
 .sec-add-input::placeholder{color:var(--text4)}
 .sec-add-ok{font-size:11px;padding:5px 10px;background:var(--accent);color:#fff;border:none;border-radius:5px;cursor:pointer;font-family:'Inter',sans-serif;font-weight:600}
 .sec-add-cancel{font-size:11px;padding:5px 8px;background:var(--surface2);color:var(--text2);border:1px solid var(--border2);border-radius:5px;cursor:pointer}
+.sec-add-task-btn{
+  display:flex;align-items:center;gap:5px;width:100%;margin-top:4px;
+  padding:7px 8px;border:1px dashed var(--border2);border-radius:var(--radius);
+  background:transparent;color:var(--text3);font-size:11px;font-weight:500;
+  cursor:pointer;font-family:'Inter',sans-serif;text-align:left;transition:all .12s;
+}
+.sec-add-task-btn:hover{background:var(--accent-lt);color:var(--accent);border-color:var(--accent-md)}
 .add-section-btn{display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text3);background:none;border:1.5px dashed var(--border2);border-radius:var(--radius);padding:6px 10px;cursor:pointer;width:100%;margin-top:6px;font-family:'Inter',sans-serif;transition:all .12s}
 .add-section-btn:hover{background:var(--surface2);color:var(--accent);border-color:var(--accent-md)}
 
@@ -642,6 +650,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
     </div>
     <div class="modal-body">
       <div class="field-group"><div class="field-label">Title *</div><input class="field-input" id="add-title" type="text" placeholder="Task title"></div>
+      <div class="field-group"><div class="field-label">Section</div>
+        <select class="field-select" id="add-section"></select>
+      </div>
       <div class="field-row">
         <div class="field-group"><div class="field-label">Type</div>
           <select class="field-select" id="add-type">
@@ -650,7 +661,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
             <option value="compliance">Compliance</option><option value="triage">Needs Triage</option>
           </select>
         </div>
-        <div class="field-group"><div class="field-label">Bucket</div>
+        <div class="field-group"><div class="field-label">Kind</div>
           <select class="field-select" id="add-source">
             <option value="customer">Customer Request</option><option value="internal">Internal</option>
           </select>
@@ -859,12 +870,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 
 <script>
 /* ── Status config ── */
-let statusOptions=[
+const DEFAULT_STATUS_OPTIONS=[
   {id:'none',          label:'None',           dot:'#d1d5db'},
   {id:'ticket-created',label:'Ticket Created', dot:'#a78bfa'},
   {id:'in-progress',   label:'In Progress',    dot:'#6366f1'},
   {id:'done',          label:'Done',           dot:'#22c55e'},
 ];
+let statusOptions=DEFAULT_STATUS_OPTIONS.map(s=>({...s}));
 const STATUS_COLORS=['#fca5a5','#fcd34d','#6ee7b7','#93c5fd','#c4b5fd','#f9a8d4','#d1d5db','#a5b4fc'];
 let selColor=STATUS_COLORS[0];
 
@@ -1720,16 +1732,52 @@ function openEditModal(card){
 
 /* ── Add modal ── */
 const addModal=document.getElementById('add-modal');
-const closeAdd=()=>{addModal.classList.remove('open');addTargetArea=null;};
+let addTargetSectionId=null;
+const closeAdd=()=>{addModal.classList.remove('open');addTargetArea=null;addTargetSectionId=null;};
 ['add-close','add-cancel'].forEach(id=>document.getElementById(id).addEventListener('click',closeAdd));
 addModal.addEventListener('click',e=>{if(e.target===addModal)closeAdd();});
 
-function openAddModal(area){
+function populateAddSectionSelect(area,preferredSectionId){
+  const sel=document.getElementById('add-section');
+  if(!sel)return;
+  sel.innerHTML='';
+  const col=document.getElementById(area+'-items');
+  const sections=col?Array.from(col.querySelectorAll(':scope > .board-section')):[];
+  if(!sections.length){
+    const opt=document.createElement('option');
+    opt.value='';
+    opt.textContent='(No sections — add a section first)';
+    sel.appendChild(opt);
+    return;
+  }
+  sections.forEach(sec=>{
+    const opt=document.createElement('option');
+    opt.value=sec.dataset.sectionId||'';
+    const nameEl=sec.querySelector('.board-section-name');
+    opt.textContent=(nameEl&&(nameEl.value||nameEl.textContent))||'Section';
+    sel.appendChild(opt);
+  });
+  if(preferredSectionId&&[...sel.options].some(o=>o.value===preferredSectionId)){
+    sel.value=preferredSectionId;
+  }
+}
+
+function openAddModal(area,sectionId){
   addTargetArea=area;
-  document.getElementById('add-modal-ctx').textContent=area==='smartbot'?'SmartBot':'ZenChat';
+  addTargetSectionId=sectionId||null;
+  const areaLabel=area==='smartbot'?'SmartBot':'ZenChat';
+  let secLabel='';
+  if(sectionId){
+    const col=document.getElementById(area+'-items');
+    const sec=col&&Array.from(col.querySelectorAll(':scope > .board-section')).find(s=>s.dataset.sectionId===sectionId);
+    const nameEl=sec&&sec.querySelector('.board-section-name');
+    if(nameEl)secLabel=' · '+(nameEl.value||nameEl.textContent||'');
+  }
+  document.getElementById('add-modal-ctx').textContent=areaLabel+secLabel;
   ['add-title','add-customer','add-notes','add-jira-id','add-jira-link'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('add-type').value='new';
   document.getElementById('add-source').value='internal';
+  populateAddSectionSelect(area,sectionId||null);
   addModal.classList.add('open');
   setTimeout(()=>document.getElementById('add-title').focus(),50);
 }
@@ -1773,7 +1821,9 @@ autofillJiraIdFromLink('add-jira-link','add-jira-id');
 
 document.getElementById('add-save').addEventListener('click',()=>{
   const t=document.getElementById('add-title').value.trim();if(!t)return;
+  if(!addTargetArea)return;
   const src=document.getElementById('add-source').value;
+  const sectionId=document.getElementById('add-section')?.value||addTargetSectionId||'';
   idCounter++;
   const prefix=addTargetArea==='smartbot'?'SB':'ZC';
   let jiraKey=document.getElementById('add-jira-id').value.trim();
@@ -1784,11 +1834,12 @@ document.getElementById('add-save').addEventListener('click',()=>{
     notes:document.getElementById('add-notes').value.trim(),jira:false,
     jiraKey,jiraLink};
   const col=document.getElementById(addTargetArea+'-items');
-  let list=Array.from(col.querySelectorAll('.board-section .sort-list')).find(l=>{
-    const sec=l.closest('.board-section');
-    return sec&&(sec.dataset.sectionId===src||(sec.querySelector('.board-section-name')?.value||'').toLowerCase().includes(src));
-  });
-  if(!list)list=col.querySelector('.board-section .sort-list');
+  let list=null;
+  if(sectionId&&col){
+    const sec=Array.from(col.querySelectorAll(':scope > .board-section')).find(s=>s.dataset.sectionId===sectionId);
+    list=sec?sec.querySelector(':scope > .sort-list'):null;
+  }
+  if(!list&&col)list=col.querySelector('.board-section .sort-list');
   if(list)list.appendChild(buildCard(item));
   updateStats();saveBoardState();closeAdd();
 });
@@ -2236,8 +2287,16 @@ function buildSection(area, id, name){
 
   // Actions: add task + delete
   const acts=document.createElement('div');acts.className='board-section-actions';
-  const addBtn=document.createElement('button');addBtn.className='sec-btn';addBtn.title='Add task';addBtn.textContent='＋';
-  const delBtn=document.createElement('button');delBtn.className='sec-btn del';delBtn.title='Delete section';delBtn.textContent='✕';
+  const addBtn=document.createElement('button');
+  addBtn.type='button';
+  addBtn.className='sec-btn add-task';
+  addBtn.title='Add task to this section';
+  addBtn.textContent='＋';
+  const delBtn=document.createElement('button');
+  delBtn.type='button';
+  delBtn.className='sec-btn del';
+  delBtn.title='Delete section';
+  delBtn.textContent='✕';
   acts.appendChild(addBtn);acts.appendChild(delBtn);
   hdr.appendChild(nameEl);hdr.appendChild(line);hdr.appendChild(acts);
 
@@ -2245,29 +2304,19 @@ function buildSection(area, id, name){
   const list=document.createElement('div');
   list.className='sort-list';list.dataset.sectionId=sec.dataset.sectionId;list.dataset.area=area;
 
-  // Inline add row
-  const addRow=document.createElement('div');addRow.className='sec-add-row';
-  const inp=document.createElement('input');inp.className='sec-add-input';inp.type='text';inp.placeholder='Task title…';
-  const ok=document.createElement('button');ok.className='sec-add-ok';ok.textContent='Add';
-  const cancel=document.createElement('button');cancel.className='sec-add-cancel';cancel.textContent='Cancel';
-  addRow.appendChild(inp);addRow.appendChild(ok);addRow.appendChild(cancel);
+  // Always-visible add control under the section
+  const addTaskBtn=document.createElement('button');
+  addTaskBtn.type='button';
+  addTaskBtn.className='sec-add-task-btn';
+  addTaskBtn.textContent='＋ Add task';
+  addTaskBtn.title='Add a task in this section';
 
-  addBtn.addEventListener('click',e=>{
+  const openSectionAdd=e=>{
     e.stopPropagation();
-    addRow.classList.add('open');
-    setTimeout(()=>inp.focus(),50);
-  });
-  cancel.addEventListener('click',()=>{addRow.classList.remove('open');inp.value='';});
-  const doAdd=()=>{
-    const t=inp.value.trim();if(!t)return;
-    const id2='T-'+(++sectionCounter);
-    const card=buildCard({id:id2,source:'internal',title:t,type:'new',st:'none',notes:'',jira:false});
-    list.appendChild(card);
-    inp.value='';addRow.classList.remove('open');
-    saveBoardState();updateStats();
+    openAddModal(area,sec.dataset.sectionId);
   };
-  ok.addEventListener('click',doAdd);
-  inp.addEventListener('keydown',e=>{if(e.key==='Enter')doAdd();if(e.key==='Escape'){addRow.classList.remove('open');inp.value='';}});
+  addBtn.addEventListener('click',openSectionAdd);
+  addTaskBtn.addEventListener('click',openSectionAdd);
 
   delBtn.addEventListener('click',e=>{
     e.stopPropagation();
@@ -2279,7 +2328,7 @@ function buildSection(area, id, name){
     setTimeout(()=>{delBtn.dataset.confirming='';delBtn.textContent='✕';delBtn.style.width='';delBtn.style.padding='';delBtn.style.color='';},2500);
   });
 
-  sec.appendChild(hdr);sec.appendChild(list);sec.appendChild(addRow);
+  sec.append(hdr,list,addTaskBtn);
   return sec;
 }
 
@@ -2343,6 +2392,29 @@ function makeSortable(list){
 }
 
 /* ── Settings ── */
+async function saveStatusOptions(){
+  try{
+    await store.set('settings:statuses',JSON.stringify(statusOptions));
+  }catch(e){console.warn('Status options save failed',e);}
+}
+
+async function loadStatusOptions(){
+  try{
+    const r=await store.get('settings:statuses');
+    if(!r||!r.value)return;
+    let data=r.value;
+    if(typeof data==='string'){
+      data=JSON.parse(data);
+      if(typeof data==='string')data=JSON.parse(data);
+    }
+    if(!Array.isArray(data)||!data.length)return;
+    const cleaned=data
+      .filter(s=>s&&s.id&&s.label)
+      .map(s=>({id:String(s.id),label:String(s.label),dot:s.dot||'#d1d5db'}));
+    if(cleaned.length)statusOptions=cleaned;
+  }catch(e){console.warn('Status options load failed',e);}
+}
+
 function renderStatusSettings(){
   const list=document.getElementById('status-options-list');list.innerHTML='';
   statusOptions.forEach((s,i)=>{
@@ -2350,7 +2422,11 @@ function renderStatusSettings(){
     row.innerHTML=`<div class="status-color-swatch" style="background:${s.dot}"></div><div class="status-option-label">${s.label}</div><div><button class="stn-btn danger">Remove</button></div>`;
     row.querySelector('.danger').addEventListener('click',()=>{
       if(statusOptions.length<=1)return;
-      statusOptions.splice(i,1);renderStatusSettings();populateStatusFilter();applyStatusFilter();
+      statusOptions.splice(i,1);
+      renderStatusSettings();
+      populateStatusFilter();
+      applyStatusFilter();
+      saveStatusOptions();
     });
     list.appendChild(row);
   });
@@ -2367,9 +2443,13 @@ function addStatusOption(){
   const input=document.getElementById('new-status-input');
   const label=input.value.trim();if(!label)return;
   const id=label.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
+  if(!id)return;
   if(statusOptions.find(s=>s.id===id))return;
   statusOptions.push({id,label,dot:selColor});
-  input.value='';renderStatusSettings();populateStatusFilter();
+  input.value='';
+  renderStatusSettings();
+  populateStatusFilter();
+  saveStatusOptions();
 }
 
 /* ── Global close dropdowns ── */
@@ -2549,6 +2629,7 @@ function updateMyTasksBadge(){
 /* ── Init ── */
 (async function init(){
   await loadBoardsMeta();
+  await loadStatusOptions();
   // Ensure legacy sprint-1 has kind
   sprints.forEach(s=>{if(!s.kind)s.kind='sprint';});
   loadMyTasks();
