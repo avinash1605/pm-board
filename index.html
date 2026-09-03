@@ -466,7 +466,11 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
         <div class="field-group"><div class="field-label">Jira Ticket ID</div><input class="field-input" id="edit-jira-id" type="text" placeholder="e.g. SB-1234"></div>
         <div class="field-group"><div class="field-label">Jira Ticket Link</div><input class="field-input" id="edit-jira-link" type="url" placeholder="https://…"></div>
       </div>
-      <div class="field-group"><div class="field-label">Notes</div><textarea class="field-textarea" id="edit-notes"></textarea></div>
+      <div class="field-group" id="edit-jira-desc-wrap" style="display:none">
+        <div class="field-label">Jira Description</div>
+        <div class="field-textarea" id="edit-jira-desc" style="min-height:80px;white-space:pre-wrap;background:var(--bg);cursor:default"></div>
+      </div>
+      <div class="field-group"><div class="field-label">Notes</div><textarea class="field-textarea" id="edit-notes" placeholder="Context, links, decisions…"></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" id="edit-cancel">Cancel</button>
@@ -599,7 +603,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
         <div class="legend-item"><span class="legend-dot ld-internal"></span> Internal</div>
         <div class="legend-item"><span class="legend-dot ld-jira"></span> Jira</div>
         <button id="select-mode-btn" style="margin-left:8px;font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer">☑ Select to Move</button>
-        <div class="toolbar-hint">⠿ drag · hover top = subtask · ✏ edit</div>
+        <div class="toolbar-hint">⠿ drag · hover top = subtask · double-click to edit</div>
       </div>
       <div class="columns">
         <div>
@@ -1258,12 +1262,14 @@ document.getElementById('edit-save').addEventListener('click',async()=>{
   const meta=activeEditCard.querySelector('.item-meta');
   let rt=activeEditCard.querySelector('.reporter-tag');
   if(cu){if(!rt){rt=document.createElement('span');rt.className='reporter-tag';meta.appendChild(rt);}rt.textContent='🏢 '+cu;}else if(rt)rt.remove();
+  activeEditCard.dataset.notes=no;
   setJiraTicketChip(activeEditCard,jiraId,jiraLink);
-  const ta=activeEditCard.querySelector('.notes-area,.jira-notes-area');
-  if(ta){ta.value=no;try{await store.set('notes:'+activeEditCard.dataset.id,no);}catch(e){}}
+  try{await store.set('notes:'+activeEditCard.dataset.id,no);}catch(e){}
   activeEditCard.classList.add('moved-flash');
   activeEditCard.addEventListener('animationend',()=>activeEditCard&&activeEditCard.classList.remove('moved-flash'),{once:true});
-  updateStats();saveBoardState();closeEdit();
+  updateStats();
+  await saveBoardState();
+  closeEdit();
 });
 
 document.getElementById('edit-delete').addEventListener('click',()=>{
@@ -1288,10 +1294,18 @@ function openEditModal(card){
   populateSelect(document.getElementById('edit-status-sel'),sw?sw.dataset.st:'none');
   const rt=card.querySelector('.reporter-tag');
   document.getElementById('edit-customer').value=rt?rt.textContent.replace(/^[🏢👤]\s*/u,''):'';
-  const jiraChip=card.querySelector('.jira-ticket-chip');
-  document.getElementById('edit-jira-id').value=jiraChip?.dataset.jiraKey||'';
-  document.getElementById('edit-jira-link').value=jiraChip?.dataset.jiraLink||'';
-  document.getElementById('edit-notes').value=card.querySelector('.notes-area,.jira-notes-area')?.value||'';
+  document.getElementById('edit-jira-id').value=card.dataset.jiraKey||'';
+  document.getElementById('edit-jira-link').value=card.dataset.jiraLink||'';
+  const descWrap=document.getElementById('edit-jira-desc-wrap');
+  const descEl=document.getElementById('edit-jira-desc');
+  if(card.dataset.jiraDesc){
+    descWrap.style.display='';
+    descEl.textContent=card.dataset.jiraDesc;
+  }else{
+    descWrap.style.display='none';
+    descEl.textContent='';
+  }
+  document.getElementById('edit-notes').value=card.dataset.notes||'';
   editModal.classList.add('open');
   setTimeout(()=>document.getElementById('edit-title').focus(),50);
 }
@@ -1370,16 +1384,22 @@ function buildJiraTicketChip(jiraKey,jiraLink){
 }
 
 function setJiraTicketChip(card,jiraKey,jiraLink){
-  const meta=card.querySelector(':scope > .item-header .item-meta');
+  if(!card)return;
+  card.dataset.jiraKey=jiraKey||'';
+  card.dataset.jiraLink=jiraLink||'';
+  const meta=card.querySelector('.item-header .item-meta')||card.querySelector('.item-meta');
   if(!meta)return;
-  const existing=meta.querySelector('.jira-ticket-chip');
-  if(existing)existing.remove();
+  meta.querySelectorAll('.jira-ticket-chip').forEach(el=>el.remove());
+  if(!jiraKey)return;
   const chip=buildJiraTicketChip(jiraKey,jiraLink);
   if(!chip)return;
   const typeBadge=meta.querySelector('.badge[data-role="type"]');
-  if(typeBadge&&typeBadge.nextSibling)meta.insertBefore(chip,typeBadge.nextSibling);
-  else if(typeBadge)meta.appendChild(chip);
-  else meta.insertBefore(chip,meta.firstChild);
+  if(typeBadge){
+    // Place chip right after the type badge
+    typeBadge.insertAdjacentElement('afterend',chip);
+  }else{
+    meta.appendChild(chip);
+  }
 }
 
 /* ── Build card ── */
@@ -1406,22 +1426,12 @@ function buildCard(item){
     '</div>'+
     '<div class="item-right">'+
       '<button class="edit-btn" title="Edit">✏</button>'+
-      '<span class="chevron">▾</span>'+
     '</div>';
 
-  // Jira ticket ID on card (link appears on click)
-  // Prefer jiraLink; fall back to legacy ticketUrl if present
-  const jiraKey=item.jiraKey||'';
-  const jiraLink=item.jiraLink||item.ticketUrl||'';
-  if(jiraKey){
-    const chip=buildJiraTicketChip(jiraKey,jiraLink);
-    const meta=hdr.querySelector('.item-meta');
-    const typeBadge=meta.querySelector('.badge[data-role="type"]');
-    if(chip){
-      if(typeBadge&&typeBadge.nextSibling)meta.insertBefore(chip,typeBadge.nextSibling);
-      else meta.appendChild(chip);
-    }
-  }
+  card.dataset.notes=item.notes||'';
+  if(item.jiraDesc)card.dataset.jiraDesc=item.jiraDesc;
+  card.dataset.jiraKey=item.jiraKey||'';
+  card.dataset.jiraLink=item.jiraLink||item.ticketUrl||'';
 
   // checkbox
   const chk=hdr.querySelector('.card-checkbox');
@@ -1437,42 +1447,24 @@ function buildCard(item){
   hdr.querySelector('.item-right').insertBefore(sw,hdr.querySelector('.edit-btn'));
 
   hdr.querySelector('.edit-btn').addEventListener('click',e=>{e.stopPropagation();openEditModal(card);});
-  hdr.addEventListener('click',e=>{
+  // Double-click opens full task metadata (notes live in the edit modal)
+  hdr.addEventListener('dblclick',e=>{
     if(e.target.closest('.drag-handle')||e.target.closest('.edit-btn')||e.target.closest('.card-status-wrap')||e.target.closest('.card-select-wrap')||e.target.closest('.jira-ticket-chip'))return;
-    card.classList.toggle('expanded');
+    e.preventDefault();
+    openEditModal(card);
   });
 
   card.addEventListener('dragstart',e=>{dragCard=card;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',card.dataset.id);});
   card.addEventListener('dragend',()=>{card&&card.classList&&card.classList.remove('dragging');document.querySelectorAll('.sort-list').forEach(l=>l.classList.remove('drag-over'));dragCard=null;});
 
-  // panel
-  const panel=document.createElement('div');
-  async function saveNotes(id,val,btn){
-    try{await store.set('notes:'+id,val);btn.textContent='✓ Saved';btn.classList.add('saved');setTimeout(()=>{btn.textContent='Save';btn.classList.remove('saved');},1800);}
-    catch(e){btn.textContent='⚠';setTimeout(()=>{btn.textContent='Save';},1800);}
-  }
-  async function loadNotes(id,ta){try{const r=await store.get('notes:'+id);if(r?.value)ta.value=r.value;}catch(e){}}
-
-  if(isJira){
-    panel.className='jira-panel';
-    const dt=document.createElement('div');dt.className='jira-section-title';dt.textContent='Description';
-    const db=document.createElement('div');db.className='jira-description';db.textContent=item.jiraDesc;
-    const nl=document.createElement('div');nl.className='jira-notes-label';nl.textContent='Notes';
-    const ta=document.createElement('textarea');ta.className='jira-notes-area';ta.placeholder='Your notes…';ta.value=item.notes||'';
-    ta.addEventListener('click',e=>e.stopPropagation());
-    const sr=document.createElement('div');sr.className='notes-save-row';
-    const sb=document.createElement('button');sb.className='notes-save-btn';sb.textContent='Save';
-    sb.addEventListener('click',e=>{e.stopPropagation();saveNotes(item.id,ta.value,sb);});
-    sr.appendChild(sb);panel.append(dt,db,nl,ta,sr);loadNotes(item.id,ta);
-  }else{
-    panel.className='notes-panel';
-    const nl=document.createElement('div');nl.className='notes-label';nl.textContent='Notes';
-    const ta=document.createElement('textarea');ta.className='notes-area';ta.placeholder='Add context, links, decisions…';ta.value=item.notes||'';
-    ta.addEventListener('click',e=>e.stopPropagation());
-    const sr=document.createElement('div');sr.className='notes-save-row';
-    const sb=document.createElement('button');sb.className='notes-save-btn';sb.textContent='Save';
-    sb.addEventListener('click',e=>{e.stopPropagation();saveNotes(item.id,ta.value,sb);});
-    sr.appendChild(sb);panel.append(nl,ta,sr);loadNotes(item.id,ta);
+  // Load legacy per-card notes from Firebase if board state notes are empty
+  if(!card.dataset.notes){
+    (async()=>{
+      try{
+        const r=await store.get('notes:'+item.id);
+        if(r?.value)card.dataset.notes=r.value;
+      }catch(e){}
+    })();
   }
 
   // subtask nest
@@ -1480,7 +1472,9 @@ function buildCard(item){
   const nestList=document.createElement('div');nestList.className='sort-list';nestList.dataset.bucket=item.source;
   nestWrap.appendChild(nestList);
 
-  card.append(hdr,panel,nestWrap);
+  card.append(hdr,nestWrap);
+  // Render Jira ID chip after header is in the DOM
+  if(card.dataset.jiraKey)setJiraTicketChip(card,card.dataset.jiraKey,card.dataset.jiraLink);
   return card;
 }
 
@@ -1586,16 +1580,13 @@ function applyBoardState(state){
 /* ── Persist board state ── */
 function serializeCard(card){
   if(!card||!card.classList.contains('item-card'))return null;
-  const sw=card.querySelector(':scope > .item-header .card-status-wrap');
-  const ta=card.querySelector(':scope > .notes-panel textarea, :scope > .jira-panel textarea');
-  const tb=card.querySelector(':scope > .item-header .badge[data-role="type"]');
-  const rt=card.querySelector(':scope > .item-header .reporter-tag');
-  const jiraChip=card.querySelector(':scope > .item-header .jira-ticket-chip');
-  const jiraDesc=card.querySelector(':scope > .jira-panel .jira-description');
+  const sw=card.querySelector('.item-header .card-status-wrap');
+  const tb=card.querySelector('.item-header .badge[data-role="type"]');
+  const rt=card.querySelector('.item-header .reporter-tag');
 
-  // Direct nest only — never pick a grandchild nest list
-  const nestList=card.querySelector(':scope > .subtask-nest > .sort-list');
   const children=[];
+  const ownNest=Array.from(card.children).find(c=>c.classList&&c.classList.contains('subtask-nest'));
+  const nestList=ownNest?Array.from(ownNest.children).find(c=>c.classList&&c.classList.contains('sort-list')):null;
   if(nestList){
     Array.from(nestList.children).forEach(child=>{
       if(!child.classList||!child.classList.contains('item-card'))return;
@@ -1604,21 +1595,18 @@ function serializeCard(card){
     });
   }
 
-  const jiraKey=jiraChip?jiraChip.dataset.jiraKey||'':'';
-  const jiraLink=jiraChip?jiraChip.dataset.jiraLink||'':'';
-
   return {
     id:card.dataset.id||('T-'+Date.now()),
     source:card.dataset.source||'internal',
-    title:card.querySelector(':scope > .item-header .item-title')?.textContent?.trim()||'',
+    title:card.querySelector('.item-header .item-title')?.textContent?.trim()||'',
     type:Object.keys(typeClass).find(k=>tb?.classList.contains(typeClass[k]))||'new',
     st:sw?sw.dataset.st:'none',
     customer:rt?rt.textContent.replace(/^[🏢👤]\s*/u,'').trim():'',
-    notes:ta?ta.value:'',
+    notes:card.dataset.notes||'',
     jira:card.classList.contains('jira-card'),
-    jiraKey,
-    jiraLink,
-    jiraDesc:jiraDesc?jiraDesc.textContent:'',
+    jiraKey:card.dataset.jiraKey||'',
+    jiraLink:card.dataset.jiraLink||'',
+    jiraDesc:card.dataset.jiraDesc||'',
     children,
   };
 }
