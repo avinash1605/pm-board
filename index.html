@@ -218,20 +218,14 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .item-title{font-size:12px;font-weight:500;color:var(--text1);line-height:1.4;margin-bottom:4px}
 .item-meta{display:flex;align-items:center;gap:5px;flex-wrap:wrap}
 .item-right{display:flex;align-items:center;gap:4px;flex-shrink:0;margin-top:1px}
-.item-card.is-collapsed > .item-header .item-meta{display:none}
-.item-card.is-collapsed > .item-header .item-title{margin-bottom:0}
-.item-card.is-collapsed > .item-header{padding-top:7px;padding-bottom:7px}
-.item-card.is-collapsed .card-collapse-btn{transform:rotate(-90deg)}
-.card-collapse-btn,.nest-toggle{
+.nest-toggle{
   display:inline-flex;align-items:center;justify-content:center;gap:3px;
-  height:20px;min-width:20px;padding:0 6px;box-sizing:border-box;
-  border:1px solid var(--border);border-radius:4px;background:var(--surface);
-  color:var(--text3);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;
-  flex-shrink:0;line-height:1;transition:background .12s,color .12s,border-color .12s,transform .15s;
+  height:20px;min-width:28px;padding:0 6px;box-sizing:border-box;
+  border:1px solid #c7d2fe;border-radius:4px;background:#eef2ff;
+  color:var(--accent);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;
+  flex-shrink:0;line-height:1;transition:background .12s,color .12s,border-color .12s;
 }
-.card-collapse-btn:hover,.nest-toggle:hover{background:var(--surface2);color:var(--text);border-color:var(--border2)}
-.nest-toggle{color:var(--accent);border-color:#c7d2fe;background:#eef2ff;min-width:28px}
-.nest-toggle:hover{background:#e0e7ff;border-color:#a5b4fc}
+.nest-toggle:hover{background:#e0e7ff;border-color:#a5b4fc;color:var(--accent)}
 .nest-toggle.is-collapsed{opacity:.85}
 .chevron{color:var(--text4);font-size:9px;transition:transform .18s}
 .item-card.expanded .chevron{transform:rotate(180deg)}
@@ -538,7 +532,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 }
 @media(hover:none) and (pointer:coarse){
   .drag-handle,.edit-btn,.add-btn-sm,.mytask-actions{opacity:1}
-  .nav-item,.sprint-item,.card-collapse-btn,.nest-toggle,.status-pill,.edit-btn{
+  .nav-item,.sprint-item,.nest-toggle,.status-pill,.edit-btn{
     min-height:36px;
   }
   .status-pill{padding:0 8px}
@@ -778,7 +772,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
           <button type="button" class="status-filter-clear" id="status-filter-clear" title="Clear filter">Clear</button>
         </div>
         <button id="select-mode-btn" style="margin-left:8px;font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer">☑ Select to Move</button>
-        <div class="toolbar-hint">⠿ drag · hover top = subtask · ▾ collapse · double-click to edit</div>
+        <div class="toolbar-hint">⠿ drag · hover top = subtask · ▶ N = subtasks · double-click to edit</div>
       </div>
       <div class="columns">
         <div>
@@ -1909,22 +1903,6 @@ function refreshNestChrome(card){
   updateNestToggleLabel(btn,nest,count);
 }
 
-function wireCardCollapse(card,hdr){
-  const right=hdr.querySelector('.item-right');
-  if(!right||right.querySelector('.card-collapse-btn'))return;
-  const btn=document.createElement('button');
-  btn.type='button';
-  btn.className='card-collapse-btn';
-  btn.title='Collapse / expand details';
-  btn.textContent='▾';
-  btn.addEventListener('click',e=>{
-    e.stopPropagation();
-    card.classList.toggle('is-collapsed');
-    btn.title=card.classList.contains('is-collapsed')?'Expand details':'Collapse details';
-  });
-  right.insertBefore(btn,right.firstChild);
-}
-
 /* ── Build card ── */
 function buildCard(item){
   const isJira=item.jira;
@@ -1969,12 +1947,10 @@ function buildCard(item){
   const sw=buildStatusWidget(item.st||'none');
   hdr.querySelector('.item-right').insertBefore(sw,hdr.querySelector('.edit-btn'));
 
-  wireCardCollapse(card,hdr);
-
   hdr.querySelector('.edit-btn').addEventListener('click',e=>{e.stopPropagation();openEditModal(card);});
   // Double-click opens full task metadata (notes live in the edit modal)
   hdr.addEventListener('dblclick',e=>{
-    if(e.target.closest('.drag-handle')||e.target.closest('.edit-btn')||e.target.closest('.card-status-wrap')||e.target.closest('.card-select-wrap')||e.target.closest('.jira-ticket-chip')||e.target.closest('.card-collapse-btn')||e.target.closest('.nest-toggle'))return;
+    if(e.target.closest('.drag-handle')||e.target.closest('.edit-btn')||e.target.closest('.card-status-wrap')||e.target.closest('.card-select-wrap')||e.target.closest('.jira-ticket-chip')||e.target.closest('.nest-toggle'))return;
     e.preventDefault();
     openEditModal(card);
   });
