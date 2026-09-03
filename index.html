@@ -841,7 +841,11 @@ function buildStatusWidget(currentId){
       item.addEventListener('click',e=>{
         e.stopPropagation();renderPill(opt.id);dd.classList.remove('open');
         const card=wrap.closest('.item-card');
-        if(card){const tlr=card.querySelector('.ticket-link-row');if(tlr)tlr.classList.toggle('show',opt.id==='ticket-created');}
+        if(card){
+          // Only toggle this card's own ticket row (not nested children's)
+          const tlr=card.querySelector(':scope > .ticket-link-row');
+          if(tlr)tlr.classList.toggle('show',opt.id==='ticket-created');
+        }
         updateStats();saveBoardState();
       });
       dd.appendChild(item);
@@ -1012,14 +1016,26 @@ function buildCard(item){
   card.addEventListener('dragstart',e=>{dragCard=card;card.classList.add('dragging');e.dataTransfer.effectAllowed='move';e.dataTransfer.setData('text/plain',card.dataset.id);});
   card.addEventListener('dragend',()=>{card&&card.classList&&card.classList.remove('dragging');document.querySelectorAll('.sort-list').forEach(l=>l.classList.remove('drag-over'));dragCard=null;});
 
-  // ticket link row
+  // ticket link row — visible whenever status is Ticket Created
   const tlRow=document.createElement('div');tlRow.className='ticket-link-row';
+  if((item.st||'none')==='ticket-created')tlRow.classList.add('show');
   tlRow.innerHTML='<span class="ticket-link-label">🎫 Ticket URL</span><input class="ticket-link-input" type="url" placeholder="Paste Jira / ticket link…">';
   const goA=document.createElement('a');goA.className='ticket-link-go';goA.textContent='Open';goA.target='_blank';goA.href='#';
-  tlRow.querySelector('input').addEventListener('input',e=>goA.href=e.target.value||'#');
+  const ticketInput=tlRow.querySelector('input');
+  if(item.ticketUrl){ticketInput.value=item.ticketUrl;goA.href=item.ticketUrl;}
+  ticketInput.addEventListener('input',e=>{
+    goA.href=e.target.value||'#';
+    debouncedSave();
+  });
+  ticketInput.addEventListener('blur',async e=>{
+    try{await store.set('ticket:'+item.id,e.target.value);}catch(err){}
+    saveBoardState();
+  });
   tlRow.appendChild(goA);
-  (async()=>{try{const r=await store.get('ticket:'+item.id);if(r?.value){tlRow.querySelector('input').value=r.value;goA.href=r.value;}}catch(e){}})();
-  tlRow.querySelector('input').addEventListener('blur',async e=>{try{await store.set('ticket:'+item.id,e.target.value);}catch(e){}});
+  // Fallback: older sessions stored URL under ticket:<id> only
+  if(!item.ticketUrl){
+    (async()=>{try{const r=await store.get('ticket:'+item.id);if(r?.value){ticketInput.value=r.value;goA.href=r.value;if((item.st||'none')==='ticket-created')saveBoardState();}}catch(err){}})();
+  }
 
   // panel
   const panel=document.createElement('div');
@@ -1087,6 +1103,8 @@ const store={
 
 /* ── Firebase realtime listener for board state ── */
 let _liveListenerController=null;
+let _lastSavedJson='';
+let _applyingRemote=false;
 function subscribeBoard(){
   // Cancel any existing listener
   if(_liveListenerController)_liveListenerController.abort();
@@ -1107,19 +1125,54 @@ function subscribeBoard(){
   _liveListenerController.signal.addEventListener('abort',()=>es.close());
 }
 
+function normalizeChildren(items){
+  if(!items)return[];
+  // Firebase may turn arrays into objects with numeric keys if stored as raw objects
+  const arr=Array.isArray(items)?items:Object.keys(items).sort((a,b)=>a-b).map(k=>items[k]);
+  return arr.filter(Boolean).map(item=>{
+    const copy={...item};
+    copy.children=normalizeChildren(item.children);
+    return copy;
+  });
+}
+
 function applyBoardState(state){
-  if(!state||!Array.isArray(state.smartbot))return;
+  if(!state||!state.smartbot)return;
+  // Accept array or Firebase object-map for sections
+  const smartbot=Array.isArray(state.smartbot)?state.smartbot:Object.values(state.smartbot);
+  const zenchat=Array.isArray(state.zenchat)?state.zenchat:Object.values(state.zenchat||{});
+  if(!Array.isArray(smartbot))return;
+
+  const normalized={
+    smartbot:smartbot.map(sec=>({
+      id:sec.id,name:sec.name,
+      items:normalizeChildren(sec.items),
+    })),
+    zenchat:zenchat.map(sec=>({
+      id:sec.id,name:sec.name,
+      items:normalizeChildren(sec.items),
+    })),
+  };
+
+  let incoming;
+  try{incoming=JSON.stringify(normalized);}catch(e){return;}
+  // Skip echo of our own write — rebuilding would wipe in-progress ticket URL edits
+  if(incoming===_lastSavedJson)return;
+  _lastSavedJson=incoming;
+  _applyingRemote=true;
+
   ['smartbot','zenchat'].forEach(area=>{
     const container=document.getElementById(area+'-items');
     container.innerHTML='';
-    (state[area]||[]).forEach(sec=>{
+    (normalized[area]||[]).forEach(sec=>{
       const secEl=buildSection(area,sec.id,sec.name);
-      const list=secEl.querySelector('.sort-list');
+      const list=secEl.querySelector(':scope > .sort-list');
       (sec.items||[]).forEach(item=>list.appendChild(buildCardFromSaved(item)));
       container.appendChild(secEl);makeSortable(list);
     });
   });
   updateStats();
+  _applyingRemote=false;
 }
 
 /* ── Persist board state ── */
@@ -1133,13 +1186,12 @@ function serializeCard(card){
   const jiraBadge=card.querySelector(':scope > .item-header .badge-jira');
   const jiraDesc=card.querySelector(':scope > .jira-panel .jira-description');
 
-  // Get immediate nest list only (not grandchild nests)
-  const nestWrap=card.querySelector(':scope > .subtask-nest');
-  const nestList=nestWrap?nestWrap.querySelector(':scope > .sort-list'):null;
-
+  // Direct nest only — never pick a grandchild nest list
+  const nestList=card.querySelector(':scope > .subtask-nest > .sort-list');
   const children=[];
   if(nestList){
     Array.from(nestList.children).forEach(child=>{
+      if(!child.classList||!child.classList.contains('item-card'))return;
       const serialized=serializeCard(child);
       if(serialized)children.push(serialized);
     });
@@ -1153,7 +1205,7 @@ function serializeCard(card){
     st:sw?sw.dataset.st:'none',
     customer:rt?rt.textContent.replace(/^[🏢👤]\s*/u,'').trim():'',
     notes:ta?ta.value:'',
-    ticketUrl:ti?ti.value:'',
+    ticketUrl:ti?ti.value.trim():'',
     jira:card.classList.contains('jira-card'),
     jiraKey:jiraBadge?jiraBadge.textContent.replace('⧉ ','').trim():'',
     jiraDesc:jiraDesc?jiraDesc.textContent:'',
@@ -1164,6 +1216,7 @@ function serializeCard(card){
 function serializeList(listEl){
   const items=[];
   Array.from(listEl.children).forEach(child=>{
+    if(!child.classList||!child.classList.contains('item-card'))return;
     const serialized=serializeCard(child);
     if(serialized)items.push(serialized);
   });
@@ -1171,6 +1224,7 @@ function serializeList(listEl){
 }
 
 async function saveBoardState(){
+  if(_applyingRemote)return;
   const state={};
   ['smartbot','zenchat'].forEach(area=>{
     state[area]=[];
@@ -1187,23 +1241,14 @@ async function saveBoardState(){
   });
   try{
     const json=JSON.stringify(state);
+    _lastSavedJson=json;
     // Save to Firebase (key uses _ instead of :)
     await store.set('board:'+activeSprint, json);
   }catch(e){console.warn('Board save failed',e);}
 }
 
-async function loadBoardState(){
-  try{
-    const r=await store.get('board:'+activeSprint);
-    if(!r||!r.value)return false;
-    const state=JSON.parse(r.value);
-    if(!Array.isArray(state.smartbot))return false;
-    applyBoardState(state);
-    return true;
-  }catch(e){console.warn('Board load failed',e);return false;}
-}
-
 function buildCardFromSaved(item){
+  const children=normalizeChildren(item.children);
   const card=buildCard({
     id:item.id,
     source:item.source||'internal',
@@ -1212,31 +1257,29 @@ function buildCardFromSaved(item){
     st:item.st||'none',
     customer:item.customer||null,
     notes:item.notes||'',
+    ticketUrl:item.ticketUrl||'',
     jira:!!item.jira,
     jiraKey:item.jiraKey||'',
     jiraDesc:item.jiraDesc||'',
   });
 
-  // Restore ticket URL
+  // Ensure ticket row visibility from status (URL may be empty)
+  const tlr=card.querySelector(':scope > .ticket-link-row');
+  if(tlr&&(item.st||'none')==='ticket-created')tlr.classList.add('show');
   if(item.ticketUrl){
-    const ti=card.querySelector('.ticket-link-input');
-    const ga=card.querySelector('.ticket-link-go');
+    const ti=card.querySelector(':scope > .ticket-link-row .ticket-link-input');
+    const ga=card.querySelector(':scope > .ticket-link-row .ticket-link-go');
     if(ti)ti.value=item.ticketUrl;
     if(ga)ga.href=item.ticketUrl;
-    if(item.st==='ticket-created'){
-      const tlr=card.querySelector('.ticket-link-row');
-      if(tlr)tlr.classList.add('show');
-    }
   }
 
   // Restore nested children recursively
-  if(item.children&&item.children.length>0){
-    const nestWrap=card.querySelector('.subtask-nest');
-    const nestList=nestWrap?nestWrap.querySelector('.sort-list'):null;
+  if(children.length>0){
+    const nestWrap=card.querySelector(':scope > .subtask-nest');
+    const nestList=nestWrap?nestWrap.querySelector(':scope > .sort-list'):null;
     if(nestList&&nestWrap){
-      item.children.forEach(child=>{
-        const childCard=buildCardFromSaved(child);
-        nestList.appendChild(childCard);
+      children.forEach(child=>{
+        nestList.appendChild(buildCardFromSaved(child));
       });
       nestWrap.style.display='block';
       if(!nestList._s){nestList._s=true;makeSortable(nestList);}
@@ -1252,7 +1295,7 @@ async function loadBoardState(){
     if(!r||!r.value)return false;
     const val=typeof r.value==='string'?r.value:JSON.stringify(r.value);
     const state=JSON.parse(val);
-    if(!Array.isArray(state.smartbot))return false;
+    if(!state.smartbot)return false;
     applyBoardState(state);
     return true;
   }catch(e){console.warn('Board load failed',e);return false;}
@@ -1383,17 +1426,25 @@ function makeSortable(list){
     },
     onEnd(evt){
       document.querySelectorAll('.drop-target-nest').forEach(el=>el.classList.remove('drop-target-nest'));
-      if(nestTarget&&evt.item&&nestTarget!==evt.item){
-        const nw=nestTarget.querySelector('.subtask-nest');
-        const nl=nestTarget.querySelector('.subtask-nest .sort-list');
+      if(nestTarget&&evt.item&&nestTarget!==evt.item&&!nestTarget.contains(evt.item)){
+        const nw=nestTarget.querySelector(':scope > .subtask-nest');
+        const nl=nw?nw.querySelector(':scope > .sort-list'):null;
         if(nl&&!nl.contains(evt.item)){
-          evt.item.parentNode?.removeChild(evt.item);nl.appendChild(evt.item);nw.style.display='block';
+          evt.item.parentNode?.removeChild(evt.item);
+          nl.appendChild(evt.item);
+          nw.style.display='block';
           if(!nl._s){nl._s=true;makeSortable(nl);}
-        }nestTarget=null;
+        }
+        nestTarget=null;
       }
-      document.querySelectorAll('.subtask-nest').forEach(w=>{if(w.querySelector('.sort-list').children.length===0)w.style.display='none';});
+      document.querySelectorAll('.subtask-nest').forEach(w=>{
+        const list=w.querySelector(':scope > .sort-list');
+        if(!list||list.children.length===0)w.style.display='none';
+        else w.style.display='block';
+      });
       updateStats();
-      debouncedSave();
+      // Persist nest structure immediately so a refresh/live sync keeps subtasks
+      saveBoardState();
     },
     onAdd(){updateStats();debouncedSave();},
     onRemove(){updateStats();debouncedSave();},
