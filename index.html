@@ -168,7 +168,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .status-filter-opt{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:5px;cursor:pointer;font-size:12px;color:var(--text1)}
 .status-filter-opt:hover{background:var(--surface2)}
 .status-filter-opt input{accent-color:var(--accent);width:14px;height:14px;margin:0;flex-shrink:0}
-.item-card.status-filtered-out{display:none!important}
+.item-card.status-filtered-out,.item-card.filtered-out{display:none!important}
 
 /* Columns */
 .columns{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
@@ -240,7 +240,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .add-task-btn:hover{background:var(--accent-md)}
 
 /* ── Badges / chips (uniform height) ── */
-.card-chip,.badge,.reporter-tag,.jira-id-btn{
+.card-chip,.badge,.reporter-tag,.jira-id-btn,.developer-tag{
   display:inline-flex;align-items:center;justify-content:center;
   height:20px;min-height:20px;max-height:20px;padding:0 7px;box-sizing:border-box;
   font-size:10px;font-weight:600;line-height:1;letter-spacing:.2px;
@@ -267,6 +267,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 
 /* Customer tag */
 .reporter-tag{color:var(--text2);background:var(--surface2);border-color:var(--border);font-weight:500}
+.developer-tag{color:#0f766e;background:#f0fdfa;border-color:#99f6e4;font-weight:500}
 
 /* ── Status pill (custom dropdown) ── */
 .card-status-wrap{position:relative;flex-shrink:0}
@@ -623,6 +624,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
         <div class="field-group"><div class="field-label">Status</div><select class="field-select" id="edit-status-sel"></select></div>
       </div>
       <div class="field-group"><div class="field-label">Customer / Reporter</div><input class="field-input" id="edit-customer" type="text" placeholder="optional"></div>
+      <div class="field-group"><div class="field-label">Developer</div>
+        <select class="field-select" id="edit-developer"></select>
+      </div>
       <div class="field-row">
         <div class="field-group"><div class="field-label">Jira Ticket ID</div><input class="field-input" id="edit-jira-id" type="text" placeholder="e.g. SB-1234"></div>
         <div class="field-group"><div class="field-label">Jira Ticket Link</div><input class="field-input" id="edit-jira-link" type="url" placeholder="https://…"></div>
@@ -668,6 +672,9 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
         </div>
       </div>
       <div class="field-group"><div class="field-label">Customer / Reporter</div><input class="field-input" id="add-customer" type="text" placeholder="optional"></div>
+      <div class="field-group"><div class="field-label">Developer</div>
+        <select class="field-select" id="add-developer"></select>
+      </div>
       <div class="field-row">
         <div class="field-group"><div class="field-label">Jira Ticket ID</div><input class="field-input" id="add-jira-id" type="text" placeholder="e.g. SB-1234"></div>
         <div class="field-group"><div class="field-label">Jira Ticket Link</div><input class="field-input" id="add-jira-link" type="url" placeholder="https://…"></div>
@@ -782,6 +789,13 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
           <div class="status-filter-panel" id="status-filter-panel"></div>
           <button type="button" class="status-filter-clear" id="status-filter-clear" title="Clear filter">Clear</button>
         </div>
+        <div class="status-filter-wrap" id="developer-filter-wrap">
+          <span class="status-filter-label">Developer</span>
+          <select class="status-filter-sel" id="developer-filter" title="Filter by developer">
+            <option value="any">any</option>
+          </select>
+          <button type="button" class="status-filter-clear" id="developer-filter-clear" title="Clear developer filter">Clear</button>
+        </div>
         <button id="select-mode-btn" style="margin-left:8px;font-size:11px;padding:3px 9px;border-radius:5px;border:1px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer">☑ Select to Move</button>
         <div class="toolbar-hint">⠿ drag · hover top = subtask · ▶ N = subtasks · double-click to edit</div>
       </div>
@@ -854,6 +868,15 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
           <div class="color-chip-row" id="color-picker"></div>
         </div>
         <div class="settings-section">
+          <div class="settings-section-title">Developers</div>
+          <div class="settings-section-desc">Names available on the Developer field and board filter.</div>
+          <div id="developer-options-list"></div>
+          <div class="add-status-row">
+            <input class="stn-input" id="new-developer-input" type="text" placeholder="Developer name…">
+            <button class="stn-add-btn" onclick="addDeveloperOption()">Add</button>
+          </div>
+        </div>
+        <div class="settings-section">
           <div class="settings-section-title">Sprint Duration</div>
           <div class="settings-section-desc">Default duration when creating new sprints.</div>
           <select class="field-select" id="sprint-dur" style="max-width:160px">
@@ -879,6 +902,8 @@ const DEFAULT_STATUS_OPTIONS=[
 let statusOptions=DEFAULT_STATUS_OPTIONS.map(s=>({...s}));
 const STATUS_COLORS=['#fca5a5','#fcd34d','#6ee7b7','#93c5fd','#c4b5fd','#f9a8d4','#d1d5db','#a5b4fc'];
 let selColor=STATUS_COLORS[0];
+let developerNames=[];
+let developerFilter='any';
 
 const JIRA_DESC=`SmartBot cannot see appointments across centres — when a guest interacts with SmartBot scoped to Centre A, it cannot retrieve appointments held at Centre B, causing guests to be incorrectly told they have no future bookings.
 
@@ -1594,21 +1619,36 @@ function refreshFilteredCounts(){
     const pfx=area==='smartbot'?'sb':'zc';
     const col=document.getElementById(area+'-items');
     if(!col)return;
-    const cards=col.querySelectorAll('.sort-list > .item-card:not(.status-filtered-out)').length;
+    const cards=col.querySelectorAll('.sort-list > .item-card:not(.filtered-out):not(.status-filtered-out)').length;
     document.getElementById(pfx+'-internal-pill').textContent=cards+' task'+(cards!==1?'s':'');
   });
 }
 
-function applyStatusFilter(){
+function developerFilterActive(){
+  return developerFilter&&developerFilter!=='any';
+}
+
+function cardMatchesDeveloperFilter(dev){
+  if(!developerFilterActive())return true;
+  const name=(dev||'').trim();
+  if(developerFilter==='__none__')return !name;
+  return name===developerFilter;
+}
+
+function applyBoardFilters(){
   document.querySelectorAll('#smartbot-items .item-card, #zenchat-items .item-card').forEach(card=>{
     const hdr=card.querySelector(':scope > .item-header')||card.querySelector('.item-header');
     const sw=hdr?hdr.querySelector('.card-status-wrap'):null;
     const st=sw?sw.dataset.st||'none':'none';
-    const show=cardMatchesStatusFilter(st);
+    const show=cardMatchesStatusFilter(st)&&cardMatchesDeveloperFilter(card.dataset.developer||'');
     card.classList.toggle('status-filtered-out',!show);
+    card.classList.toggle('filtered-out',!show);
   });
   syncStatusFilterControls();
+  syncDeveloperFilterControls();
 }
+
+function applyStatusFilter(){applyBoardFilters();}
 
 function clearStatusFilter(){
   statusFilter={op:'any',values:[]};
@@ -1618,8 +1658,86 @@ function clearStatusFilter(){
     panel.classList.remove('open');
   }
   syncStatusFilterControls();
-  applyStatusFilter();
+  applyBoardFilters();
   updateStats();
+}
+
+function syncDeveloperFilterControls(){
+  const sel=document.getElementById('developer-filter');
+  const clearBtn=document.getElementById('developer-filter-clear');
+  if(sel)sel.value=developerFilter||'any';
+  if(clearBtn)clearBtn.classList.toggle('show',developerFilterActive());
+}
+
+function populateDeveloperFilter(){
+  const sel=document.getElementById('developer-filter');
+  if(!sel)return;
+  if(developerFilter!=='any'&&developerFilter!=='__none__'&&!developerNames.includes(developerFilter)){
+    developerFilter='any';
+  }
+  const cur=developerFilter||'any';
+  sel.innerHTML='';
+  const opts=[{value:'any',label:'any'},{value:'__none__',label:'Unassigned'}]
+    .concat(developerNames.map(n=>({value:n,label:n})));
+  opts.forEach(o=>{
+    const opt=document.createElement('option');
+    opt.value=o.value;
+    opt.textContent=o.label;
+    sel.appendChild(opt);
+  });
+  sel.value=cur;
+  syncDeveloperFilterControls();
+}
+
+function clearDeveloperFilter(){
+  developerFilter='any';
+  syncDeveloperFilterControls();
+  applyBoardFilters();
+  updateStats();
+}
+
+function populateDeveloperSelect(sel,current){
+  if(!sel)return;
+  const cur=current||'';
+  sel.innerHTML='';
+  const blank=document.createElement('option');
+  blank.value='';
+  blank.textContent=developerNames.length?'— Unassigned —':'— Add developers in Settings —';
+  sel.appendChild(blank);
+  developerNames.forEach(n=>{
+    const o=document.createElement('option');
+    o.value=n;
+    o.textContent=n;
+    if(n===cur)o.selected=true;
+    sel.appendChild(o);
+  });
+  // Keep orphan assignment visible if name was removed from settings
+  if(cur&&!developerNames.includes(cur)){
+    const o=document.createElement('option');
+    o.value=cur;
+    o.textContent=cur+' (removed)';
+    o.selected=true;
+    sel.appendChild(o);
+  }
+}
+
+function setDeveloperChip(card,name){
+  if(!card)return;
+  const cleaned=(name||'').trim();
+  card.dataset.developer=cleaned;
+  const meta=card.querySelector('.item-header .item-meta')||card.querySelector('.item-meta');
+  if(!meta)return;
+  meta.querySelectorAll('.developer-tag').forEach(el=>el.remove());
+  if(!cleaned)return;
+  const tag=document.createElement('span');
+  tag.className='developer-tag';
+  tag.textContent=cleaned;
+  tag.title='Developer';
+  const jira=meta.querySelector('.jira-ticket-chip');
+  const reporter=meta.querySelector('.reporter-tag');
+  if(reporter)reporter.insertAdjacentElement('beforebegin',tag);
+  else if(jira)jira.insertAdjacentElement('afterend',tag);
+  else meta.appendChild(tag);
 }
 
 document.getElementById('status-filter-op').addEventListener('change',e=>{
@@ -1651,6 +1769,15 @@ document.getElementById('status-filter-multi-btn').addEventListener('click',e=>{
 
 document.getElementById('status-filter-clear').addEventListener('click',clearStatusFilter);
 
+document.getElementById('developer-filter').addEventListener('change',e=>{
+  developerFilter=e.target.value||'any';
+  syncDeveloperFilterControls();
+  applyBoardFilters();
+  refreshFilteredCounts();
+  updateStats();
+});
+document.getElementById('developer-filter-clear').addEventListener('click',clearDeveloperFilter);
+
 document.addEventListener('click',e=>{
   if(!e.target.closest('#status-filter-wrap')){
     document.getElementById('status-filter-panel')?.classList.remove('open');
@@ -1669,6 +1796,7 @@ document.getElementById('edit-save').addEventListener('click',async()=>{
   const ty=document.getElementById('edit-type').value;
   const st=document.getElementById('edit-status-sel').value;
   const cu=document.getElementById('edit-customer').value.trim();
+  const developer=document.getElementById('edit-developer').value.trim();
   const no=document.getElementById('edit-notes').value.trim();
   const jiraLink=document.getElementById('edit-jira-link').value.trim();
   let jiraId=document.getElementById('edit-jira-id').value.trim();
@@ -1681,6 +1809,7 @@ document.getElementById('edit-save').addEventListener('click',async()=>{
   const meta=activeEditCard.querySelector('.item-meta');
   let rt=activeEditCard.querySelector('.reporter-tag');
   if(cu){if(!rt){rt=document.createElement('span');rt.className='reporter-tag';meta.appendChild(rt);}rt.textContent='🏢 '+cu;}else if(rt)rt.remove();
+  setDeveloperChip(activeEditCard,developer);
   activeEditCard.dataset.notes=no;
   setJiraTicketChip(activeEditCard,jiraId,jiraLink);
   try{await store.set('notes:'+activeEditCard.dataset.id,no);}catch(e){}
@@ -1688,7 +1817,7 @@ document.getElementById('edit-save').addEventListener('click',async()=>{
   activeEditCard.addEventListener('animationend',()=>activeEditCard&&activeEditCard.classList.remove('moved-flash'),{once:true});
   updateStats();
   await saveBoardState();
-  applyStatusFilter();
+  applyBoardFilters();
   closeEdit();
 });
 
@@ -1714,6 +1843,7 @@ function openEditModal(card){
   populateSelect(document.getElementById('edit-status-sel'),sw?sw.dataset.st:'none');
   const rt=card.querySelector('.reporter-tag');
   document.getElementById('edit-customer').value=rt?rt.textContent.replace(/^[🏢👤]\s*/u,''):'';
+  populateDeveloperSelect(document.getElementById('edit-developer'),card.dataset.developer||'');
   document.getElementById('edit-jira-id').value=card.dataset.jiraKey||'';
   document.getElementById('edit-jira-link').value=card.dataset.jiraLink||'';
   const descWrap=document.getElementById('edit-jira-desc-wrap');
@@ -1778,6 +1908,7 @@ function openAddModal(area,sectionId){
   document.getElementById('add-type').value='new';
   document.getElementById('add-source').value='internal';
   populateAddSectionSelect(area,sectionId||null);
+  populateDeveloperSelect(document.getElementById('add-developer'),'');
   addModal.classList.add('open');
   setTimeout(()=>document.getElementById('add-title').focus(),50);
 }
@@ -1831,6 +1962,7 @@ document.getElementById('add-save').addEventListener('click',()=>{
   if(!jiraKey&&jiraLink)jiraKey=extractJiraKeyFromUrl(jiraLink);
   const item={id:prefix+'-'+idCounter,source:src,title:t,type:document.getElementById('add-type').value,st:'none',
     customer:document.getElementById('add-customer').value.trim()||null,
+    developer:document.getElementById('add-developer').value.trim()||'',
     notes:document.getElementById('add-notes').value.trim(),jira:false,
     jiraKey,jiraLink};
   const col=document.getElementById(addTargetArea+'-items');
@@ -1984,6 +2116,7 @@ function buildCard(item){
   if(item.jiraDesc)card.dataset.jiraDesc=item.jiraDesc;
   card.dataset.jiraKey=item.jiraKey||'';
   card.dataset.jiraLink=item.jiraLink||item.ticketUrl||'';
+  card.dataset.developer=item.developer||'';
 
   // checkbox
   const chk=hdr.querySelector('.card-checkbox');
@@ -2027,6 +2160,7 @@ function buildCard(item){
   card.append(hdr,nestWrap);
   // Render Jira ID chip after header is in the DOM
   if(card.dataset.jiraKey)setJiraTicketChip(card,card.dataset.jiraKey,card.dataset.jiraLink);
+  if(card.dataset.developer)setDeveloperChip(card,card.dataset.developer);
   return card;
 }
 
@@ -2154,6 +2288,7 @@ function serializeCard(card){
     type:Object.keys(typeClass).find(k=>tb?.classList.contains(typeClass[k]))||'new',
     st:sw?sw.dataset.st:'none',
     customer:rt?rt.textContent.replace(/^[🏢👤]\s*/u,'').trim():'',
+    developer:card.dataset.developer||'',
     notes:card.dataset.notes||'',
     jira:card.classList.contains('jira-card'),
     jiraKey:card.dataset.jiraKey||'',
@@ -2206,6 +2341,7 @@ function buildCardFromSaved(item){
     type:item.type||'new',
     st:item.st||'none',
     customer:item.customer||null,
+    developer:item.developer||'',
     notes:item.notes||'',
     ticketUrl:item.ticketUrl||'',
     jira:!!item.jira,
@@ -2452,6 +2588,73 @@ function addStatusOption(){
   saveStatusOptions();
 }
 
+async function saveDeveloperNames(){
+  try{
+    await store.set('settings:developers',JSON.stringify(developerNames));
+  }catch(e){console.warn('Developer names save failed',e);}
+}
+
+async function loadDeveloperNames(){
+  try{
+    const r=await store.get('settings:developers');
+    if(!r||!r.value)return;
+    let data=r.value;
+    if(typeof data==='string'){
+      data=JSON.parse(data);
+      if(typeof data==='string')data=JSON.parse(data);
+    }
+    if(!Array.isArray(data))return;
+    developerNames=data.map(n=>String(n||'').trim()).filter(Boolean)
+      .filter((n,i,arr)=>arr.findIndex(x=>x.toLowerCase()===n.toLowerCase())===i);
+  }catch(e){console.warn('Developer names load failed',e);}
+}
+
+function renderDeveloperSettings(){
+  const list=document.getElementById('developer-options-list');
+  if(!list)return;
+  list.innerHTML='';
+  developerNames.forEach((name,i)=>{
+    const row=document.createElement('div');
+    row.className='status-option-row';
+    row.innerHTML=`<div class="status-option-label" style="flex:1">${escapeHtml(name)}</div><div><button class="stn-btn danger">Remove</button></div>`;
+    row.querySelector('.danger').addEventListener('click',()=>{
+      developerNames.splice(i,1);
+      renderDeveloperSettings();
+      populateDeveloperFilter();
+      applyBoardFilters();
+      saveDeveloperNames();
+    });
+    list.appendChild(row);
+  });
+  if(!developerNames.length){
+    list.innerHTML='<div style="font-size:11px;color:var(--text4);padding:4px 0">No developers yet — add names below.</div>';
+  }
+  populateDeveloperFilter();
+}
+
+function addDeveloperOption(){
+  const input=document.getElementById('new-developer-input');
+  const name=(input?.value||'').trim();
+  if(!name)return;
+  if(developerNames.some(n=>n.toLowerCase()===name.toLowerCase())){
+    input.value='';
+    return;
+  }
+  developerNames.push(name);
+  developerNames.sort((a,b)=>a.localeCompare(b));
+  input.value='';
+  renderDeveloperSettings();
+  populateDeveloperFilter();
+  saveDeveloperNames();
+}
+
+document.getElementById('new-developer-input')?.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();addDeveloperOption();}
+});
+document.getElementById('new-status-input')?.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();addStatusOption();}
+});
+
 /* ── Global close dropdowns ── */
 document.addEventListener('click',()=>{
   document.querySelectorAll('.status-dropdown.open').forEach(d=>d.classList.remove('open'));
@@ -2630,6 +2833,7 @@ function updateMyTasksBadge(){
 (async function init(){
   await loadBoardsMeta();
   await loadStatusOptions();
+  await loadDeveloperNames();
   // Ensure legacy sprint-1 has kind
   sprints.forEach(s=>{if(!s.kind)s.kind='sprint';});
   loadMyTasks();
@@ -2637,7 +2841,9 @@ function updateMyTasksBadge(){
   renderSprintList();
   updateTopbar();
   renderStatusSettings();
+  renderDeveloperSettings();
   populateStatusFilter();
+  populateDeveloperFilter();
   populateSelect(document.getElementById('edit-status-sel'),'none');
   renderMyTasks();
   updateMyTasksBadge();
