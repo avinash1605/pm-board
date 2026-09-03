@@ -426,6 +426,93 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 
 .footer{padding:12px 20px;font-size:10px;color:var(--text4);font-family:'JetBrains Mono',monospace;border-top:1px solid var(--border);background:var(--surface);text-align:center;flex-shrink:0}
 
+/* ── Access gate ── */
+.access-gate{
+  position:fixed;inset:0;z-index:2000;display:flex;align-items:center;justify-content:center;
+  padding:20px;background:linear-gradient(160deg,#eef1f6 0%,#f5f6f8 45%,#e8ecf4 100%);
+}
+.access-gate.hidden{display:none}
+.access-card{
+  width:100%;max-width:380px;background:var(--surface);border:1px solid var(--border2);
+  border-radius:14px;box-shadow:var(--shadow-lg);padding:28px 26px 24px;
+}
+.access-brand{display:flex;align-items:center;gap:10px;margin-bottom:18px}
+.access-brand .logo-icon{width:32px;height:32px;font-size:14px}
+.access-brand-title{font-size:16px;font-weight:700;color:var(--text1)}
+.access-brand-sub{font-size:11px;color:var(--text3);margin-top:2px}
+.access-prompt{font-size:13px;color:var(--text2);margin-bottom:14px;line-height:1.45}
+.access-actions{display:flex;flex-direction:column;gap:8px}
+.access-btn{
+  width:100%;text-align:left;padding:12px 14px;border-radius:10px;border:1px solid var(--border2);
+  background:var(--surface);cursor:pointer;font-family:'Inter',sans-serif;transition:background .12s,border-color .12s;
+}
+.access-btn:hover{background:var(--surface2);border-color:var(--border2)}
+.access-btn.primary{background:var(--accent-lt);border-color:var(--accent-md)}
+.access-btn.primary:hover{background:var(--accent-md)}
+.access-btn-title{font-size:13px;font-weight:600;color:var(--text1);display:block}
+.access-btn-desc{font-size:11px;color:var(--text3);margin-top:3px;display:block;line-height:1.35}
+.access-pin-wrap{display:none;margin-top:4px}
+.access-pin-wrap.open{display:block}
+.access-pin-row{display:flex;gap:8px;margin-top:10px}
+.access-pin-input{
+  flex:1;letter-spacing:.35em;text-align:center;font-size:18px;font-weight:600;
+  font-family:'JetBrains Mono',monospace;padding:10px 12px;border:1px solid var(--border2);
+  border-radius:8px;outline:none;background:var(--surface);
+}
+.access-pin-input:focus{border-color:var(--accent)}
+.access-pin-go{
+  padding:0 16px;border:none;border-radius:8px;background:var(--accent);color:#fff;
+  font-weight:600;font-size:12px;cursor:pointer;font-family:'Inter',sans-serif;
+}
+.access-pin-go:hover{opacity:.9}
+.access-pin-error{font-size:11px;color:var(--red);margin-top:8px;min-height:16px}
+.access-pin-back{
+  margin-top:10px;background:none;border:none;color:var(--text3);font-size:11px;
+  cursor:pointer;font-family:'Inter',sans-serif;padding:0;
+}
+.access-pin-back:hover{color:var(--text1)}
+.access-note{font-size:10px;color:var(--text4);margin-top:16px;line-height:1.4}
+.access-mode-chip{
+  display:none;align-items:center;gap:6px;font-size:10px;font-weight:600;
+  padding:4px 9px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);
+  color:var(--text3);white-space:nowrap;flex-shrink:0;
+}
+.access-mode-chip.show{display:inline-flex}
+.access-mode-chip.edit{color:var(--accent);background:var(--accent-lt);border-color:var(--accent-md)}
+.access-mode-chip.view{color:var(--text3)}
+.access-logout-btn{
+  display:none;align-items:center;justify-content:center;gap:5px;
+  font-size:12px;font-weight:600;padding:6px 12px;border-radius:6px;
+  border:1px solid var(--border2);background:var(--surface);color:var(--text1);
+  cursor:pointer;font-family:'Inter',sans-serif;flex-shrink:0;white-space:nowrap;
+  transition:background .12s,border-color .12s,color .12s;
+}
+.access-logout-btn.show{display:inline-flex}
+.access-logout-btn:hover{background:var(--red-lt);border-color:var(--red-bd);color:var(--red)}
+.topbar-stats{display:flex;align-items:center;gap:12px}
+
+/* View-only: hide mutating controls */
+body.view-only .edit-btn,
+body.view-only .sec-btn,
+body.view-only .sec-add-task-btn,
+body.view-only .add-section-btn,
+body.view-only .drag-handle,
+body.view-only #select-mode-btn,
+body.view-only #new-board-btn,
+body.view-only .sidebar-footer,
+body.view-only .sprint-del-btn,
+body.view-only .add-status-row,
+body.view-only .color-chip-row,
+body.view-only .stn-btn,
+body.view-only .add-task-btn,
+body.view-only .mytask-actions,
+body.view-only .mytask-add-row,
+body.view-only .status-pill-arrow{display:none!important}
+body.view-only .status-pill{cursor:default;pointer-events:none}
+body.view-only .board-section-name{pointer-events:none;cursor:default}
+body.view-only .mytask-check{pointer-events:none;cursor:default}
+body.view-only .mytask-title{pointer-events:none}
+
 /* ── Mobile menu button + backdrop ── */
 .mobile-menu-btn{
   display:none;align-items:center;justify-content:center;
@@ -443,7 +530,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 /* ── Responsive ── */
 @media(max-width:900px){
   .columns{grid-template-columns:1fr;gap:22px}
-  .topbar-right{display:none}
+  .topbar-stats{display:none}
   .toolbar-hint{display:none}
 }
 @media(max-width:768px){
@@ -549,6 +636,42 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 </style>
 </head>
 <body>
+
+<!-- Access gate -->
+<div class="access-gate" id="access-gate" role="dialog" aria-modal="true" aria-labelledby="access-title">
+  <div class="access-card">
+    <div class="access-brand">
+      <div class="logo-icon">📋</div>
+      <div>
+        <div class="access-brand-title" id="access-title">PM Sprint Board</div>
+        <div class="access-brand-sub">Choose access mode</div>
+      </div>
+    </div>
+    <div id="access-choice">
+      <p class="access-prompt">How do you want to open the board?</p>
+      <div class="access-actions">
+        <button type="button" class="access-btn primary" id="access-avinash">
+          <span class="access-btn-title">Continue as Avinash</span>
+          <span class="access-btn-desc">Enter 4-digit PIN for full edit access</span>
+        </button>
+        <button type="button" class="access-btn" id="access-other">
+          <span class="access-btn-title">View as Other</span>
+          <span class="access-btn-desc">Read-only — browse boards, no changes</span>
+        </button>
+      </div>
+    </div>
+    <div class="access-pin-wrap" id="access-pin-wrap">
+      <p class="access-prompt">Enter your 4-digit PIN to unlock edit mode</p>
+      <div class="access-pin-row">
+        <input class="access-pin-input" id="access-pin" type="password" inputmode="numeric" maxlength="4" autocomplete="one-time-code" placeholder="••••" aria-label="4-digit PIN">
+        <button type="button" class="access-pin-go" id="access-pin-go">Unlock</button>
+      </div>
+      <div class="access-pin-error" id="access-pin-error"></div>
+      <button type="button" class="access-pin-back" id="access-pin-back">← Back</button>
+    </div>
+    <p class="access-note">Simple access gate for this board. Viewers can look around; only Avinash with PIN can edit.</p>
+  </div>
+</div>
 
 <!-- Board create modal -->
 <div class="modal-overlay" id="sprint-modal">
@@ -752,13 +875,17 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
         </div>
       </div>
       <div class="topbar-right">
-        <div class="tstat"><div class="tstat-num" id="total-count">—</div><div class="tstat-label">Total</div></div>
-        <div class="tstat-div"></div>
-        <div class="tstat"><div class="tstat-num" id="customer-count">—</div><div class="tstat-label">Customer</div></div>
-        <div class="tstat-div"></div>
-        <div class="tstat"><div class="tstat-num" id="internal-count">—</div><div class="tstat-label">Internal</div></div>
-        <div class="tstat-div"></div>
-        <div class="tstat"><div class="tstat-num green" id="done-count">—</div><div class="tstat-label">Done</div></div>
+        <div class="topbar-stats">
+          <div class="tstat"><div class="tstat-num" id="total-count">—</div><div class="tstat-label">Total</div></div>
+          <div class="tstat-div"></div>
+          <div class="tstat"><div class="tstat-num" id="customer-count">—</div><div class="tstat-label">Customer</div></div>
+          <div class="tstat-div"></div>
+          <div class="tstat"><div class="tstat-num" id="internal-count">—</div><div class="tstat-label">Internal</div></div>
+          <div class="tstat-div"></div>
+          <div class="tstat"><div class="tstat-num green" id="done-count">—</div><div class="tstat-label">Done</div></div>
+        </div>
+        <span class="access-mode-chip" id="access-mode-chip"></span>
+        <button type="button" class="access-logout-btn" id="access-logout-btn" title="Log out and choose access mode">Logout</button>
       </div>
     </div>
 
@@ -892,6 +1019,135 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 </div>
 
 <script>
+/* ── Access gate (client-side; not cryptographic security) ── */
+const ACCESS_STORAGE_KEY='pmBoardAccessMode';
+const ACCESS_PIN='1502';
+let accessMode=null; // 'edit' | 'view' | null
+
+function canEdit(){return accessMode==='edit';}
+
+function setAccessMode(mode){
+  accessMode=(mode==='edit'||mode==='view')?mode:null;
+  try{
+    if(accessMode)sessionStorage.setItem(ACCESS_STORAGE_KEY,accessMode);
+    else sessionStorage.removeItem(ACCESS_STORAGE_KEY);
+  }catch(e){}
+  applyAccessMode();
+}
+
+function restoreAccessMode(){
+  try{
+    const m=sessionStorage.getItem(ACCESS_STORAGE_KEY);
+    if(m==='edit'||m==='view'){accessMode=m;return true;}
+  }catch(e){}
+  return false;
+}
+
+function applyAccessMode(){
+  const gate=document.getElementById('access-gate');
+  const chip=document.getElementById('access-mode-chip');
+  const logoutBtn=document.getElementById('access-logout-btn');
+  document.body.classList.toggle('view-only',accessMode==='view');
+  document.body.classList.toggle('edit-mode',accessMode==='edit');
+  document.body.classList.toggle('access-locked',!accessMode);
+
+  if(gate)gate.classList.toggle('hidden',!!accessMode);
+  if(chip){
+    chip.classList.toggle('show',!!accessMode);
+    chip.classList.toggle('edit',accessMode==='edit');
+    chip.classList.toggle('view',accessMode==='view');
+    chip.textContent=accessMode==='edit'?'Avinash · Edit':accessMode==='view'?'Other · View only':'';
+  }
+  if(logoutBtn)logoutBtn.classList.toggle('show',!!accessMode);
+
+  // Enable/disable drag for all existing lists
+  document.querySelectorAll('.sort-list').forEach(list=>{
+    if(list._sortable)list._sortable.option('disabled',!canEdit());
+  });
+
+  // Close mutating UI if dropping to view
+  if(!canEdit()){
+    document.querySelectorAll('.modal-overlay.open').forEach(m=>{
+      if(m.id==='edit-modal')return; // may be read-only view
+      m.classList.remove('open');
+    });
+    const moveBar=document.getElementById('move-bar');
+    if(moveBar)moveBar.classList.remove('show');
+  }
+  syncEditModalAccess();
+}
+
+function showAccessChoice(){
+  document.getElementById('access-choice').style.display='';
+  document.getElementById('access-pin-wrap').classList.remove('open');
+  document.getElementById('access-pin').value='';
+  document.getElementById('access-pin-error').textContent='';
+}
+
+function showAccessPin(){
+  document.getElementById('access-choice').style.display='none';
+  document.getElementById('access-pin-wrap').classList.add('open');
+  document.getElementById('access-pin-error').textContent='';
+  const pin=document.getElementById('access-pin');
+  pin.value='';
+  setTimeout(()=>pin.focus(),40);
+}
+
+function submitAccessPin(){
+  const pin=(document.getElementById('access-pin').value||'').trim();
+  const err=document.getElementById('access-pin-error');
+  if(pin.length!==4){
+    err.textContent='Enter the 4-digit PIN';
+    return;
+  }
+  if(pin!==ACCESS_PIN){
+    err.textContent='Incorrect PIN';
+    document.getElementById('access-pin').select();
+    return;
+  }
+  err.textContent='';
+  setAccessMode('edit');
+}
+
+function switchAccessMode(){
+  setAccessMode(null);
+  showAccessChoice();
+  const gate=document.getElementById('access-gate');
+  if(gate)gate.classList.remove('hidden');
+}
+
+function wireAccessGate(){
+  document.getElementById('access-avinash')?.addEventListener('click',showAccessPin);
+  document.getElementById('access-other')?.addEventListener('click',()=>setAccessMode('view'));
+  document.getElementById('access-pin-go')?.addEventListener('click',submitAccessPin);
+  document.getElementById('access-pin-back')?.addEventListener('click',showAccessChoice);
+  document.getElementById('access-logout-btn')?.addEventListener('click',switchAccessMode);
+  const pin=document.getElementById('access-pin');
+  pin?.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();submitAccessPin();}
+  });
+  pin?.addEventListener('input',()=>{
+    pin.value=pin.value.replace(/\D/g,'').slice(0,4);
+    document.getElementById('access-pin-error').textContent='';
+  });
+}
+
+function syncEditModalAccess(){
+  const editable=canEdit();
+  const modal=document.getElementById('edit-modal');
+  if(!modal)return;
+  modal.querySelectorAll('input,select,textarea').forEach(el=>{
+    if(el.id==='edit-jira-desc')return;
+    el.disabled=!editable;
+  });
+  const save=document.getElementById('edit-save');
+  const del=document.getElementById('edit-delete');
+  const cancel=document.getElementById('edit-cancel');
+  if(save)save.style.display=editable?'':'none';
+  if(del)del.style.display=editable?'':'none';
+  if(cancel)cancel.textContent=editable?'Cancel':'Close';
+}
+
 /* ── Status config ── */
 const DEFAULT_STATUS_OPTIONS=[
   {id:'none',          label:'None',           dot:'#d1d5db'},
@@ -1046,12 +1302,12 @@ function showPage(id,btn){
   }else if(btn){
     btn.classList.add('active');
   }
-  // Board chrome (stats / move) only meaningful on the board page
-  const topRight=document.querySelector('.topbar-right');
+  // Board stats only meaningful on the board page; keep Logout visible
+  const topStats=document.querySelector('.topbar-stats');
   const moveBarEl=document.getElementById('move-bar');
-  if(topRight){
-    if(id==='board')topRight.style.removeProperty('display');
-    else topRight.style.display='none';
+  if(topStats){
+    if(id==='board')topStats.style.removeProperty('display');
+    else topStats.style.display='none';
   }
   if(id!=='board'&&moveBarEl)moveBarEl.classList.remove('show');
   closeMobileNav();
@@ -1125,6 +1381,7 @@ function closeDeleteBoardModal(){
 }
 
 function openDeleteBoardModal(boardId){
+  if(!canEdit())return;
   const sp=sprints.find(s=>s.id===boardId);
   if(!sp)return;
   if(sprints.length<=1){
@@ -1204,6 +1461,7 @@ function updateTopbar(){
 }
 
 async function saveBoardsMeta(){
+  if(!canEdit())return;
   try{
     await store.set('boards',JSON.stringify({boards:sprints,active:activeSprint}));
   }catch(e){console.warn('Boards meta save failed',e);}
@@ -1254,6 +1512,7 @@ newMenu.querySelectorAll('.new-menu-item').forEach(btn=>{
 });
 
 function openBoardModal(kind){
+  if(!canEdit())return;
   kind=kind||'sprint';
   document.getElementById('sp-kind').value=kind;
   const datesRow=document.getElementById('sp-dates-row');
@@ -1341,6 +1600,7 @@ document.getElementById('sprint-save').addEventListener('click',async()=>{
 /* ── Select mode / move tasks ── */
 const moveBar=document.getElementById('move-bar');
 document.getElementById('select-mode-btn').addEventListener('click',()=>{
+  if(!canEdit())return;
   selectMode=!selectMode;
   document.getElementById('select-mode-btn').textContent=selectMode?'✕ Cancel Select':'☑ Select to Move';
   document.getElementById('select-mode-btn').style.background=selectMode?'var(--accent-lt)':'';
@@ -1469,13 +1729,20 @@ function buildStatusWidget(currentId){
       const s=getStatusStyle(opt.id);
       item.innerHTML='<span class="status-dd-dot" style="background:'+s.dot+'"></span>'+opt.label;
       item.addEventListener('click',e=>{
-        e.stopPropagation();renderPill(opt.id);dd.classList.remove('open');
+        e.stopPropagation();
+        if(!canEdit())return;
+        renderPill(opt.id);dd.classList.remove('open');
         updateStats();applyStatusFilter();saveBoardState();
       });
       dd.appendChild(item);
     });
   }
-  pill.addEventListener('click',e=>{e.stopPropagation();document.querySelectorAll('.status-dropdown.open,.move-sprint-dd.open').forEach(d=>{if(d!==dd)d.classList.remove('open');});renderDD();dd.classList.toggle('open');});
+  pill.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(!canEdit())return;
+    document.querySelectorAll('.status-dropdown.open,.move-sprint-dd.open').forEach(d=>{if(d!==dd)d.classList.remove('open');});
+    renderDD();dd.classList.toggle('open');
+  });
   renderPill(currentId);
   wrap.appendChild(pill);wrap.appendChild(dd);
   return wrap;
@@ -1791,7 +2058,7 @@ const closeEdit=()=>{editModal.classList.remove('open');activeEditCard=null;cons
 editModal.addEventListener('click',e=>{if(e.target===editModal)closeEdit();});
 
 document.getElementById('edit-save').addEventListener('click',async()=>{
-  if(!activeEditCard)return;
+  if(!canEdit()||!activeEditCard)return;
   const t=document.getElementById('edit-title').value.trim();if(!t)return;
   const ty=document.getElementById('edit-type').value;
   const st=document.getElementById('edit-status-sel').value;
@@ -1822,7 +2089,7 @@ document.getElementById('edit-save').addEventListener('click',async()=>{
 });
 
 document.getElementById('edit-delete').addEventListener('click',()=>{
-  if(!activeEditCard)return;
+  if(!canEdit()||!activeEditCard)return;
   const footer=editModal.querySelector('.modal-footer');
   let cr=footer.querySelector('.delete-confirm-row');
   if(cr){cr.remove();return;}
@@ -1856,6 +2123,7 @@ function openEditModal(card){
     descEl.textContent='';
   }
   document.getElementById('edit-notes').value=card.dataset.notes||'';
+  syncEditModalAccess();
   editModal.classList.add('open');
   setTimeout(()=>document.getElementById('edit-title').focus(),50);
 }
@@ -1893,6 +2161,7 @@ function populateAddSectionSelect(area,preferredSectionId){
 }
 
 function openAddModal(area,sectionId){
+  if(!canEdit())return;
   addTargetArea=area;
   addTargetSectionId=sectionId||null;
   const areaLabel=area==='smartbot'?'SmartBot':'ZenChat';
@@ -1951,6 +2220,7 @@ autofillJiraIdFromLink('edit-jira-link','edit-jira-id');
 autofillJiraIdFromLink('add-jira-link','add-jira-id');
 
 document.getElementById('add-save').addEventListener('click',()=>{
+  if(!canEdit())return;
   const t=document.getElementById('add-title').value.trim();if(!t)return;
   if(!addTargetArea)return;
   const src=document.getElementById('add-source').value;
@@ -2309,6 +2579,7 @@ function serializeList(listEl){
 }
 
 async function saveBoardState(){
+  if(!canEdit())return;
   if(_applyingRemote)return;
   const state={};
   ['smartbot','zenchat'].forEach(area=>{
@@ -2417,7 +2688,7 @@ function buildSection(area, id, name){
   const hdr=document.createElement('div');hdr.className='board-section-header';
   const nameEl=document.createElement('input');
   nameEl.className='board-section-name';nameEl.type='text';nameEl.value=name||'New Section';
-  nameEl.addEventListener('change',()=>saveBoardState());
+  nameEl.addEventListener('change',()=>{if(canEdit())saveBoardState();});
   nameEl.addEventListener('click',e=>e.stopPropagation());
   const line=document.createElement('div');line.className='board-section-line';
 
@@ -2456,6 +2727,7 @@ function buildSection(area, id, name){
 
   delBtn.addEventListener('click',e=>{
     e.stopPropagation();
+    if(!canEdit())return;
     if(list.children.length===0){sec.remove();saveBoardState();updateStats();return;}
     // inline confirm
     if(delBtn.dataset.confirming==='1'){sec.remove();saveBoardState();updateStats();return;}
@@ -2469,6 +2741,7 @@ function buildSection(area, id, name){
 }
 
 function addSection(area){
+  if(!canEdit())return;
   const container=document.getElementById(area+'-items');
   const id='sec-'+(++sectionCounter);
   const sec=buildSection(area,id,'New Section');
@@ -2488,11 +2761,19 @@ function debouncedSave(){
 }
 let dragCard=null;
 function makeSortable(list){
-  Sortable.create(list,{
+  if(!list)return;
+  if(list._sortable){
+    list._sortable.option('disabled',!canEdit());
+    return;
+  }
+  list._s=true;
+  list._sortable=Sortable.create(list,{
     group:{name:'tasks',pull:true,put:true},handle:'.drag-handle',animation:140,
+    disabled:!canEdit(),
     ghostClass:'sortable-ghost',chosenClass:'sortable-chosen',dragClass:'sortable-drag',
     onStart(){nestTarget=null;},
     onMove(evt){
+      if(!canEdit())return false;
       document.querySelectorAll('.drop-target-nest').forEach(el=>el.classList.remove('drop-target-nest'));
       const oc=evt.related?.classList.contains('item-card')?evt.related:null;
       if(oc&&oc!==evt.dragged&&!oc.contains(evt.dragged)){
@@ -2504,6 +2785,7 @@ function makeSortable(list){
     },
     onEnd(evt){
       document.querySelectorAll('.drop-target-nest').forEach(el=>el.classList.remove('drop-target-nest'));
+      if(!canEdit())return;
       if(nestTarget&&evt.item&&nestTarget!==evt.item&&!nestTarget.contains(evt.item)){
         const nw=nestTarget.querySelector(':scope > .subtask-nest');
         const nl=nw?nw.querySelector(':scope > .sort-list'):null;
@@ -2522,13 +2804,14 @@ function makeSortable(list){
       // Persist nest structure immediately so a refresh/live sync keeps subtasks
       saveBoardState();
     },
-    onAdd(){updateStats();debouncedSave();},
-    onRemove(){updateStats();debouncedSave();},
+    onAdd(){if(!canEdit())return;updateStats();debouncedSave();},
+    onRemove(){if(!canEdit())return;updateStats();debouncedSave();},
   });
 }
 
 /* ── Settings ── */
 async function saveStatusOptions(){
+  if(!canEdit())return;
   try{
     await store.set('settings:statuses',JSON.stringify(statusOptions));
   }catch(e){console.warn('Status options save failed',e);}
@@ -2557,6 +2840,7 @@ function renderStatusSettings(){
     const row=document.createElement('div');row.className='status-option-row';
     row.innerHTML=`<div class="status-color-swatch" style="background:${s.dot}"></div><div class="status-option-label">${s.label}</div><div><button class="stn-btn danger">Remove</button></div>`;
     row.querySelector('.danger').addEventListener('click',()=>{
+      if(!canEdit())return;
       if(statusOptions.length<=1)return;
       statusOptions.splice(i,1);
       renderStatusSettings();
@@ -2576,6 +2860,7 @@ function renderStatusSettings(){
 }
 
 function addStatusOption(){
+  if(!canEdit())return;
   const input=document.getElementById('new-status-input');
   const label=input.value.trim();if(!label)return;
   const id=label.toLowerCase().replace(/\s+/g,'-').replace(/[^a-z0-9-]/g,'');
@@ -2589,6 +2874,7 @@ function addStatusOption(){
 }
 
 async function saveDeveloperNames(){
+  if(!canEdit())return;
   try{
     await store.set('settings:developers',JSON.stringify(developerNames));
   }catch(e){console.warn('Developer names save failed',e);}
@@ -2618,6 +2904,7 @@ function renderDeveloperSettings(){
     row.className='status-option-row';
     row.innerHTML=`<div class="status-option-label" style="flex:1">${escapeHtml(name)}</div><div><button class="stn-btn danger">Remove</button></div>`;
     row.querySelector('.danger').addEventListener('click',()=>{
+      if(!canEdit())return;
       developerNames.splice(i,1);
       renderDeveloperSettings();
       populateDeveloperFilter();
@@ -2633,6 +2920,7 @@ function renderDeveloperSettings(){
 }
 
 function addDeveloperOption(){
+  if(!canEdit())return;
   const input=document.getElementById('new-developer-input');
   const name=(input?.value||'').trim();
   if(!name)return;
@@ -2666,6 +2954,7 @@ let myTasks = [];
 let myTaskCounter = 1000;
 
 function saveMyTasks(){
+  if(!canEdit())return;
   store.set('mytasks',JSON.stringify(myTasks));
 }
 function loadMyTasks(){
@@ -2687,6 +2976,7 @@ function isOverdue(dateStr){
 }
 
 function openMyTaskAdd(){
+  if(!canEdit())return;
   const row=document.getElementById('mytask-add-row');
   row.style.display='flex';
   const today=new Date();
@@ -2831,6 +3121,10 @@ function updateMyTasksBadge(){
 
 /* ── Init ── */
 (async function init(){
+  wireAccessGate();
+  if(restoreAccessMode())applyAccessMode();
+  else showAccessChoice();
+
   await loadBoardsMeta();
   await loadStatusOptions();
   await loadDeveloperNames();
@@ -2848,7 +3142,8 @@ function updateMyTasksBadge(){
   renderMyTasks();
   updateMyTasksBadge();
   subscribeBoard();
-  await saveBoardsMeta();
+  if(canEdit())await saveBoardsMeta();
+  applyAccessMode();
 })();
 </script>
 </body>
