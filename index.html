@@ -1252,8 +1252,9 @@ document.getElementById('edit-save').addEventListener('click',async()=>{
   const st=document.getElementById('edit-status-sel').value;
   const cu=document.getElementById('edit-customer').value.trim();
   const no=document.getElementById('edit-notes').value.trim();
-  const jiraId=document.getElementById('edit-jira-id').value.trim();
   const jiraLink=document.getElementById('edit-jira-link').value.trim();
+  let jiraId=document.getElementById('edit-jira-id').value.trim();
+  if(!jiraId)jiraId=extractJiraKeyFromUrl(jiraLink);
   activeEditCard.querySelector('.item-title').textContent=t;
   const tb=activeEditCard.querySelector('.badge[data-role="type"]');
   if(tb){tb.className='badge '+typeClass[ty];tb.setAttribute('data-role','type');tb.textContent=typeLabels[ty];}
@@ -1326,13 +1327,51 @@ function openAddModal(area){
   setTimeout(()=>document.getElementById('add-title').focus(),50);
 }
 
+/* ── Autofill Jira ID from link ── */
+function extractJiraKeyFromUrl(url){
+  if(!url)return'';
+  const s=String(url).trim();
+  // selectedIssue=KEY-123
+  let m=s.match(/[?&#]selectedIssue=([A-Z][A-Z0-9]+-\d+)/i);
+  if(m)return m[1].toUpperCase();
+  // /browse/KEY-123 or /browse/KEY-123?...
+  m=s.match(/\/browse\/([A-Z][A-Z0-9]+-\d+)/i);
+  if(m)return m[1].toUpperCase();
+  // /issues/KEY-123
+  m=s.match(/\/issues\/([A-Z][A-Z0-9]+-\d+)/i);
+  if(m)return m[1].toUpperCase();
+  // bare KEY-123 at end of path
+  m=s.match(/\/([A-Z][A-Z0-9]+-\d+)(?:[/?#]|$)/i);
+  if(m)return m[1].toUpperCase();
+  // pasted key alone
+  m=s.match(/^([A-Z][A-Z0-9]+-\d+)$/i);
+  if(m)return m[1].toUpperCase();
+  return'';
+}
+
+function autofillJiraIdFromLink(linkInputId,idInputId){
+  const linkEl=document.getElementById(linkInputId);
+  const idEl=document.getElementById(idInputId);
+  if(!linkEl||!idEl)return;
+  const apply=()=>{
+    const key=extractJiraKeyFromUrl(linkEl.value);
+    if(key)idEl.value=key;
+  };
+  linkEl.addEventListener('input',apply);
+  linkEl.addEventListener('paste',()=>setTimeout(apply,0));
+  linkEl.addEventListener('change',apply);
+}
+autofillJiraIdFromLink('edit-jira-link','edit-jira-id');
+autofillJiraIdFromLink('add-jira-link','add-jira-id');
+
 document.getElementById('add-save').addEventListener('click',()=>{
   const t=document.getElementById('add-title').value.trim();if(!t)return;
   const src=document.getElementById('add-source').value;
   idCounter++;
   const prefix=addTargetArea==='smartbot'?'SB':'ZC';
-  const jiraKey=document.getElementById('add-jira-id').value.trim();
+  let jiraKey=document.getElementById('add-jira-id').value.trim();
   const jiraLink=document.getElementById('add-jira-link').value.trim();
+  if(!jiraKey&&jiraLink)jiraKey=extractJiraKeyFromUrl(jiraLink);
   const item={id:prefix+'-'+idCounter,source:src,title:t,type:document.getElementById('add-type').value,st:'none',
     customer:document.getElementById('add-customer').value.trim()||null,
     notes:document.getElementById('add-notes').value.trim(),jira:false,
