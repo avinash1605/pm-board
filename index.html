@@ -73,7 +73,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .sidebar.collapsed .nav-item::after{content:attr(data-tip);position:absolute;left:calc(var(--sidebar-collapsed) + 4px);background:var(--text1);color:#fff;font-size:11px;padding:4px 8px;border-radius:5px;white-space:nowrap;pointer-events:none;opacity:0;transition:opacity .12s;z-index:100}
 .sidebar.collapsed .nav-item:hover::after{opacity:1}
 
-.sprint-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius);cursor:pointer;font-size:12px;color:var(--text2);border:none;background:none;width:100%;text-align:left;transition:background .12s;white-space:nowrap;overflow:hidden}
+.sprint-item{display:flex;align-items:center;gap:8px;padding:6px 8px;border-radius:var(--radius);cursor:pointer;font-size:12px;color:var(--text2);border:none;background:none;width:100%;text-align:left;transition:background .12s;white-space:nowrap;overflow:hidden;position:relative}
 .sprint-item:hover{background:var(--surface2)}
 .sprint-item.active{background:var(--surface2);color:var(--text1);font-weight:500}
 .sprint-dot{width:6px;height:6px;border-radius:50%;background:var(--border2);flex-shrink:0}
@@ -82,12 +82,33 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .sprint-item-name{font-size:11px;font-weight:500;overflow:hidden;text-overflow:ellipsis}
 .sprint-item-dates{font-size:10px;color:var(--text4);font-family:'JetBrains Mono',monospace;margin-top:1px}
 .sidebar.collapsed .sprint-item-text{opacity:0;pointer-events:none}
+.sprint-del-btn{width:20px;height:20px;border-radius:4px;border:none;background:transparent;color:var(--text4);cursor:pointer;display:none;align-items:center;justify-content:center;font-size:11px;flex-shrink:0;padding:0;line-height:1}
+.sprint-item:hover .sprint-del-btn,.sprint-item.active .sprint-del-btn{display:flex}
+.sprint-del-btn:hover{background:var(--red-lt);color:var(--red)}
+.sidebar.collapsed .sprint-del-btn{display:none!important}
+.btn-danger-solid{background:var(--red);color:#fff;border:1px solid var(--red);border-radius:5px;padding:7px 15px;font-size:12px;font-weight:600;cursor:pointer;font-family:'Inter',sans-serif}
+.btn-danger-solid:hover{opacity:.9}
+.btn-danger-solid:disabled{opacity:.45;cursor:not-allowed}
 
 .sidebar-footer{padding:8px;border-top:1px solid var(--border);flex-shrink:0}
 .new-sprint-btn{display:flex;align-items:center;gap:7px;padding:7px 8px;border-radius:var(--radius);cursor:pointer;font-size:12px;font-weight:500;color:var(--accent);background:var(--accent-lt);border:1px solid var(--accent-md);width:100%;transition:background .12s;white-space:nowrap;overflow:hidden}
 .new-sprint-btn:hover{background:var(--accent-md)}
 .new-sprint-btn .btn-label{opacity:1;transition:opacity .15s}
 .sidebar.collapsed .new-sprint-btn .btn-label{opacity:0;pointer-events:none}
+.new-menu-wrap{position:relative}
+.new-menu{display:none;position:absolute;left:0;right:0;bottom:calc(100% + 6px);background:var(--surface);border:1px solid var(--border2);border-radius:var(--radius-lg);box-shadow:var(--shadow-lg);padding:4px;z-index:80}
+.new-menu.open{display:block}
+.new-menu-item{display:flex;flex-direction:column;gap:1px;width:100%;text-align:left;padding:8px 10px;border:none;background:none;border-radius:5px;cursor:pointer;font-family:'Inter',sans-serif}
+.new-menu-item:hover{background:var(--surface2)}
+.new-menu-item-title{font-size:12px;font-weight:600;color:var(--text1)}
+.new-menu-item-desc{font-size:10px;color:var(--text4);line-height:1.35}
+.board-kind-label{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text4);padding:8px 8px 2px}
+.sidebar.collapsed .board-kind-label{opacity:0}
+.sprint-dot.kind-sprint{background:var(--accent)}
+.sprint-dot.kind-backlog{background:var(--amber)}
+.sprint-dot.kind-parking{background:var(--text3)}
+.field-row.sprint-dates{display:grid}
+.topbar-dates.is-muted,.prog-wrap.is-hidden{display:none}
 
 /* ── Main ── */
 .main-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
@@ -367,24 +388,56 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 </head>
 <body>
 
-<!-- Sprint modal -->
+<!-- Board create modal -->
 <div class="modal-overlay" id="sprint-modal">
   <div class="modal">
     <div class="modal-header">
-      <div><div class="modal-title">New Sprint</div><div class="modal-sub">2-week board by default</div></div>
+      <div>
+        <div class="modal-title" id="sp-modal-title">New Sprint</div>
+        <div class="modal-sub" id="sp-modal-sub">2-week board by default</div>
+      </div>
       <button class="modal-close" id="sprint-close">✕</button>
     </div>
     <div class="modal-body">
+      <input type="hidden" id="sp-kind" value="sprint">
       <div class="field-group"><div class="field-label">Name</div><input class="field-input" id="sp-name" type="text" placeholder="e.g. Sprint 3 — SmartBot"></div>
-      <div class="field-row">
+      <div class="field-row sprint-dates" id="sp-dates-row">
         <div class="field-group"><div class="field-label">Start</div><input class="field-input" id="sp-start" type="date"></div>
         <div class="field-group"><div class="field-label">End</div><input class="field-input" id="sp-end" type="date"></div>
       </div>
-      <div class="field-group"><div class="field-label">Goal</div><textarea class="field-textarea" id="sp-goal" placeholder="Sprint goal…" style="min-height:52px"></textarea></div>
+      <div class="field-group"><div class="field-label" id="sp-goal-label">Goal</div><textarea class="field-textarea" id="sp-goal" placeholder="Sprint goal…" style="min-height:52px"></textarea></div>
     </div>
     <div class="modal-footer">
       <button class="btn-cancel" id="sprint-cancel">Cancel</button>
       <button class="btn-primary" id="sprint-save">Create Sprint</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete board modal (two-step confirm) -->
+<div class="modal-overlay" id="delete-board-modal">
+  <div class="modal" style="width:420px">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title">Delete board?</div>
+        <div class="modal-sub" id="del-board-sub">This cannot be undone</div>
+      </div>
+      <button class="modal-close" id="del-board-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:12px;color:var(--text2);line-height:1.55;margin:0">
+        You’re about to delete <strong id="del-board-name"></strong>.
+        All tasks, sections, notes, and ticket links on this board will be permanently removed.
+      </p>
+      <div id="del-board-step2" style="display:none;margin-top:12px;padding:10px 12px;background:var(--red-lt);border:1px solid var(--red-bd);border-radius:6px">
+        <div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:4px">Are you sure?</div>
+        <div style="font-size:11px;color:var(--text2);line-height:1.5">Click again to permanently delete this board. This action cannot be undone.</div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" id="del-board-cancel">Cancel</button>
+      <button class="btn-danger" id="del-board-confirm" style="margin-left:auto">Delete board</button>
+      <button class="btn-danger-solid" id="del-board-confirm2" style="display:none;margin-left:0">Yes, permanently delete</button>
     </div>
   </div>
 </div>
@@ -463,12 +516,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
       <button class="collapse-btn" id="collapse-btn" title="Toggle sidebar">◀</button>
     </div>
     <div class="sidebar-content">
-      <div class="sidebar-section-label">Navigation</div>
+      <div class="sidebar-section-label">Global</div>
       <div style="display:flex;flex-direction:column;gap:1px;margin-bottom:8px">
-        <button class="nav-item active" id="nav-board" data-tip="Board" onclick="showPage('board',this)">
-          <span class="nav-icon">🗂</span><span class="nav-label">Board</span>
-          <span class="nav-badge" id="nav-total">—</span>
-        </button>
         <button class="nav-item" id="nav-mytasks" data-tip="My Tasks" onclick="showPage('mytasks',this)">
           <span class="nav-icon">✅</span><span class="nav-label">My Tasks</span>
           <span class="nav-badge" id="nav-mytasks-count">—</span>
@@ -477,14 +526,30 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
           <span class="nav-icon">⚙️</span><span class="nav-label">Settings</span>
         </button>
       </div>
-      <div class="sidebar-section-label">Sprints</div>
+      <div class="sidebar-section-label">Sprint boards</div>
       <div id="sprint-list" style="display:flex;flex-direction:column;gap:1px"></div>
     </div>
     <div class="sidebar-footer">
-      <button class="new-sprint-btn" onclick="openSprintModal()">
-        <span style="font-size:15px;line-height:1;flex-shrink:0">+</span>
-        <span class="btn-label">New Sprint</span>
-      </button>
+      <div class="new-menu-wrap">
+        <div class="new-menu" id="new-menu">
+          <button type="button" class="new-menu-item" data-kind="sprint">
+            <span class="new-menu-item-title">Sprint</span>
+            <span class="new-menu-item-desc">Timed sprint board with start &amp; end dates</span>
+          </button>
+          <button type="button" class="new-menu-item" data-kind="backlog">
+            <span class="new-menu-item-title">Backlog</span>
+            <span class="new-menu-item-desc">Prioritized work waiting to enter a sprint</span>
+          </button>
+          <button type="button" class="new-menu-item" data-kind="parking">
+            <span class="new-menu-item-title">Parking board</span>
+            <span class="new-menu-item-desc">Park items that are not in a sprint or backlog</span>
+          </button>
+        </div>
+        <button class="new-sprint-btn" id="new-board-btn" type="button" title="New">
+          <span style="font-size:15px;line-height:1;flex-shrink:0">+</span>
+          <span class="btn-label">New</span>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -559,7 +624,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
         <div class="mytasks-header">
           <div>
             <div style="font-size:15px;font-weight:700;color:var(--text1)">My Tasks</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">Personal tasks — not linked to any sprint</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px">Personal tasks across all sprints — not tied to a board</div>
           </div>
           <button class="add-task-btn" onclick="openMyTaskAdd()">+ Add Task</button>
         </div>
@@ -630,35 +695,48 @@ For multi-location businesses routing all calls through one central concierge ce
 
 The org-level setting enable_hpc_events_across_center is already ON for affected accounts and is used by the rest of HyperConnect to share guest timeline events across centres. SmartBot's appointment lookup does not honour this setting.`;
 
-/* ── Sprints ── */
-let sprints=[{id:'sprint-1',name:'Sprint 1 — SmartBot & ZenChat',start:'2026-09-02',end:'2026-09-16',goal:'Q3 focus areas'}];
+/* ── Boards (sprints, backlog, parking) ── */
+let sprints=[{id:'sprint-1',kind:'sprint',name:'Sprint 1 — SmartBot & ZenChat',start:'2026-09-02',end:'2026-09-16',goal:'Q3 focus areas'}];
 let activeSprint='sprint-1';
+
+const BOARD_KIND_META={
+  sprint:{label:'Sprints',chip:'Sprint',dot:'kind-sprint'},
+  backlog:{label:'Backlog',chip:'Backlog',dot:'kind-backlog'},
+  parking:{label:'Parking',chip:'Parking',dot:'kind-parking'},
+};
+function boardKind(sp){return (sp&&sp.kind)||'sprint';}
 
 /* ── Tasks — stored per sprint ── */
 const baseData={
   smartbot:[
-    {id:"SB-03",source:"customer",title:"Skin Spirit — Bot Bug Triage",type:"bug",st:"none",customer:"Skin Spirit",notes:"",jira:false},
-    {id:"SB-02",source:"customer",title:"Skin Spirit — Bot Settings Under HyperConnect",type:"enhance",st:"none",customer:"Skin Spirit",notes:"",jira:false},
-    {id:"SB-06",source:"customer",title:"Skin Laundry — Open Text FAQ Flow",type:"new",st:"none",customer:"Skin Laundry",notes:"",jira:false},
+    {id:"SB-03",source:"customer",title:"Skin Spirit — Bot Bug Triage",type:"bug",st:"in-progress",customer:"Skin Spirit",notes:"1 issue needs search improvement — target mid-next week.",jira:false},
+    {id:"SB-15",source:"customer",title:"Skin Spirit — Search Improvement",type:"enhance",st:"in-progress",customer:"Skin Spirit",notes:"Should be done by mid-next week.",jira:false},
+    {id:"SB-02",source:"customer",title:"Skin Spirit — Bot Settings Under HyperConnect",type:"enhance",st:"in-progress",customer:"Skin Spirit",notes:"",jira:false},
+    {id:"SB-06",source:"customer",title:"Skin Laundry — Open Text FAQ Flow",type:"new",st:"none",customer:"Skin Laundry",notes:"FAQ before center selection — pick in this sprint.",jira:false},
     {id:"SB-07",source:"customer",title:"OVME — Website SmartBot with Call Center Handoff",type:"new",st:"none",customer:"OVME",notes:"",jira:false},
     {id:"SB-08",source:"customer",title:"SmartBot Cross-Centre Appointment Visibility",type:"enhance",st:"none",customer:"Prophile Clinics",notes:"",jira:true,jiraKey:"SB-JIRA-01",jiraDesc:JIRA_DESC},
-    {id:"SB-12",source:"customer",title:"Aesthetemed LLC — WhatsApp Auto First-Response",type:"new",st:"none",customer:"Aesthetemed LLC",notes:"Request from David via Michelle Sadeh. Inbound WhatsApp → auto first-response/greeting with predefined text, landing page link, and next-step questions. Looped in: Avinash Kumar, Sampath Thodupunuri, Deepak Doguparti, Jamie Fejeran, Lakshmi T. Action: confirm feasibility via SmartBot, HyperConnect, or another config. Urgent.",jira:false},
-    {id:"SB-01",source:"internal",title:"Non-Catalog Service Support",type:"new",st:"none",notes:"",jira:false},
-    {id:"SB-09",source:"internal",title:"Don't Enforce Centre Selection at Chat Initiation",type:"enhance",st:"none",notes:"",jira:false},
+    {id:"SB-12",source:"customer",title:"Aesthetemed LLC — WhatsApp Auto First-Response",type:"new",st:"none",customer:"Aesthetemed LLC",notes:"Request from David via Michelle Sadeh. Confirm feasibility via SmartBot / HyperConnect.",jira:false},
+    {id:"SB-13",source:"internal",title:"WhatsApp Vendor — Kalera to Twilio (Sending Blocked)",type:"bug",st:"in-progress",notes:"Blocked from sending WhatsApp. Chandan and Lakshmi have context.",jira:false},
+    {id:"SB-14",source:"internal",title:"WhatsApp Compliance Issue (Meet email)",type:"compliance",st:"in-progress",notes:"Compliance issue email Meet flagged.",jira:false},
+    {id:"SB-01",source:"internal",title:"Non-Catalog Service Support",type:"new",st:"none",notes:"Discuss with Ravi today.",jira:false},
+    {id:"SB-09",source:"internal",title:"Don't Enforce Centre Selection at Chat Initiation",type:"enhance",st:"none",notes:"FAQ before center selection — pick in this sprint.",jira:false},
     {id:"SB-10",source:"internal",title:"Custom Instructions Visible in SmartBot Settings UI",type:"enhance",st:"none",notes:"",jira:false},
     {id:"SB-11",source:"internal",title:"Define Non-Business Hours Message on SmartBot",type:"enhance",st:"none",notes:"",jira:false},
-    {id:"SB-04",source:"internal",title:"Single Phone Number — SMS + SmartBot Routing",type:"infra",st:"none",notes:"",jira:false},
+    {id:"SB-04",source:"internal",title:"Single Phone Number — SMS + SmartBot Routing",type:"infra",st:"none",notes:"Unified Bot + 2-way SMS. Discuss with Ravi today.",jira:false},
     {id:"SB-05",source:"internal",title:"Usage Dashboard Updates",type:"enhance",st:"none",notes:"",jira:false},
   ],
   zenchat:[
     {id:"ZC-07",source:"customer",title:"Search by Keyword",type:"new",st:"none",reporter:"Nafeesa Harun",reporterRole:"Sales",notes:"",jira:false},
-    {id:"ZC-08",source:"customer",title:"Add Member to Existing Group",type:"enhance",st:"none",reporter:"Nafeesa Harun",reporterRole:"Sales",notes:"",jira:false},
+    {id:"ZC-08",source:"customer",title:"Add Member to Existing Group",type:"enhance",st:"none",reporter:"Nafeesa Harun",reporterRole:"Sales",notes:"Pick in this sprint.",jira:false},
     {id:"ZC-01",source:"internal",title:"Add Employee to Group Chat (on Creation)",type:"enhance",st:"none",notes:"",jira:false},
-    {id:"ZC-02",source:"internal",title:"Guest Phone Number Masking",type:"enhance",st:"none",notes:"",jira:false},
-    {id:"ZC-03",source:"internal",title:"Broadcast Duplicate Notification Bug",type:"bug",st:"none",notes:"",jira:false},
-    {id:"ZC-04",source:"internal",title:"Prescription Shared — Investigation",type:"triage",st:"none",notes:"",jira:false},
+    {id:"ZC-02",source:"internal",title:"Guest Phone Number Masking",type:"enhance",st:"in-progress",notes:"Fix done for Web; APP/MyZen in patch 4.",jira:false},
+    {id:"ZC-03",source:"internal",title:"Broadcast Duplicate Notification Bug",type:"bug",st:"in-progress",notes:"Check with Ravi.",jira:false},
+    {id:"ZC-04",source:"internal",title:"Prescription Shared — Investigation",type:"triage",st:"done",notes:"Cross-center share done. Check pending with prescription team.",jira:false},
     {id:"ZC-05",source:"internal",title:"HIPAA Audit — Compliance Follow-up",type:"compliance",st:"in-progress",notes:"",jira:false},
-    {id:"ZC-06",source:"internal",title:"Usage Dashboard — Fixes & Updates",type:"enhance",st:"none",notes:"",jira:false},
+    {id:"ZC-06",source:"internal",title:"ZenChat Analytics Dashboard Updates",type:"enhance",st:"in-progress",notes:"GitHub access raised — not approved yet.",jira:false},
+    {id:"ZC-09",source:"internal",title:"Telemetry for messages sent (web / ZMA / myZen)",type:"enhance",st:"none",notes:"",jira:false},
+    {id:"ZC-10",source:"internal",title:"Home page — better usage metrics",type:"enhance",st:"none",notes:"",jira:false},
+    {id:"ZC-11",source:"internal",title:"Lite customers Pro upsell — ProReadiness tab",type:"enhance",st:"none",notes:"",jira:false},
   ]
 };
 
@@ -682,9 +760,18 @@ collapseBtn.addEventListener('click',()=>{
 /* ── Page nav ── */
 function showPage(id,btn){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  if(btn)btn.classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  if(id==='board'){
+    // Board view is selected via the sprint-board list, not a nav item
+  }else if(btn){
+    btn.classList.add('active');
+  }
+  // Board chrome (stats / move) only meaningful on the board page
+  const topRight=document.querySelector('.topbar-right');
+  const moveBarEl=document.getElementById('move-bar');
+  if(topRight)topRight.style.display=id==='board'?'':'none';
+  if(id!=='board'&&moveBarEl)moveBarEl.classList.remove('show');
 }
 
 /* ── Helpers ── */
@@ -692,58 +779,280 @@ function fmt(d){const dt=new Date(d+'T00:00:00');return dt.toLocaleDateString('e
 function daysLeft(e){const now=new Date();now.setHours(0,0,0,0);const end=new Date(e+'T00:00:00');return Math.max(0,Math.round((end-now)/864e5));}
 function sprintPct(s,e){const st=new Date(s+'T00:00:00'),en=new Date(e+'T00:00:00'),now=new Date();now.setHours(0,0,0,0);return en>st?Math.round(Math.min(Math.max(now-st,0),en-st)/(en-st)*100):0;}
 
-/* ── Sprint list ── */
+/* ── Board list ── */
+function boardSubtitle(sp){
+  const kind=boardKind(sp);
+  if(kind==='sprint'&&sp.start&&sp.end)return fmt(sp.start)+' → '+fmt(sp.end);
+  if(kind==='backlog')return 'Prioritized queue';
+  if(kind==='parking')return 'Parked outside sprint/backlog';
+  return BOARD_KIND_META[kind]?.chip||kind;
+}
+
 function renderSprintList(){
   const list=document.getElementById('sprint-list');list.innerHTML='';
-  sprints.forEach(sp=>{
-    const btn=document.createElement('button');
-    btn.className='sprint-item'+(sp.id===activeSprint?' active':'');
-    btn.innerHTML=`<span class="sprint-dot"></span><span class="sprint-item-text"><div class="sprint-item-name">${sp.name}</div><div class="sprint-item-dates">${fmt(sp.start)} → ${fmt(sp.end)}</div></span>`;
-    btn.addEventListener('click',()=>{
-      activeSprint=sp.id;
-      if(!sprintTasks[sp.id])sprintTasks[sp.id]={smartbot:[],zenchat:[]};
-      renderBoard();renderSprintList();updateTopbar();
-      subscribeBoard();
+  const order=['sprint','backlog','parking'];
+  order.forEach(kind=>{
+    const group=sprints.filter(s=>boardKind(s)===kind);
+    if(!group.length)return;
+    const lab=document.createElement('div');
+    lab.className='board-kind-label';
+    lab.textContent=BOARD_KIND_META[kind].label;
+    list.appendChild(lab);
+    group.forEach(sp=>{
+      const row=document.createElement('div');
+      row.className='sprint-item'+(sp.id===activeSprint?' active':'');
+      row.innerHTML=`<span class="sprint-dot ${BOARD_KIND_META[kind].dot}"></span><span class="sprint-item-text"><div class="sprint-item-name">${sp.name}</div><div class="sprint-item-dates">${boardSubtitle(sp)}</div></span>`;
+      const delBtn=document.createElement('button');
+      delBtn.type='button';
+      delBtn.className='sprint-del-btn';
+      delBtn.title='Delete board';
+      delBtn.textContent='🗑';
+      delBtn.addEventListener('click',e=>{
+        e.stopPropagation();
+        openDeleteBoardModal(sp.id);
+      });
+      row.appendChild(delBtn);
+      row.addEventListener('click',()=>{
+        activeSprint=sp.id;
+        if(!sprintTasks[sp.id])sprintTasks[sp.id]={smartbot:[],zenchat:[]};
+        saveBoardsMeta();
+        showPage('board');
+        renderBoard();renderSprintList();updateTopbar();
+        subscribeBoard();
+      });
+      list.appendChild(row);
     });
-    list.appendChild(btn);
   });
 }
 
-function updateTopbar(){
-  const sp=sprints.find(s=>s.id===activeSprint);if(!sp)return;
-  document.getElementById('topbar-title').textContent=sp.name;
-  document.getElementById('topbar-chip').textContent=sp.name.split('—')[0].trim();
-  document.getElementById('topbar-dates').textContent=fmt(sp.start)+' → '+fmt(sp.end)+' · '+daysLeft(sp.end)+'d left';
-  const pct=sprintPct(sp.start,sp.end);
-  document.getElementById('prog-fill').style.width=pct+'%';
-  document.getElementById('prog-label').textContent=pct+'% elapsed';
+/* ── Delete board (two-step popup) ── */
+let pendingDeleteBoardId=null;
+const deleteBoardModal=document.getElementById('delete-board-modal');
+
+function resetDeleteBoardModal(){
+  pendingDeleteBoardId=null;
+  document.getElementById('del-board-step2').style.display='none';
+  document.getElementById('del-board-confirm').style.display='';
+  document.getElementById('del-board-confirm2').style.display='none';
 }
 
-/* ── Sprint modal ── */
-const sprintModal=document.getElementById('sprint-modal');
-function openSprintModal(){
-  const dur=parseInt(document.getElementById('sprint-dur').value||2);
-  const today=new Date(),end=new Date(today);end.setDate(end.getDate()+dur*7);
-  document.getElementById('sp-name').value='Sprint '+(sprints.length+1);
-  document.getElementById('sp-start').value=today.toISOString().split('T')[0];
-  document.getElementById('sp-end').value=end.toISOString().split('T')[0];
-  document.getElementById('sp-goal').value='';
-  sprintModal.classList.add('open');
-  setTimeout(()=>document.getElementById('sp-name').focus(),50);
+function closeDeleteBoardModal(){
+  deleteBoardModal.classList.remove('open');
+  resetDeleteBoardModal();
 }
+
+function openDeleteBoardModal(boardId){
+  const sp=sprints.find(s=>s.id===boardId);
+  if(!sp)return;
+  if(sprints.length<=1){
+    // Soft inline notice via modal body when it's the last board
+    pendingDeleteBoardId=null;
+    document.getElementById('del-board-name').textContent=sp.name;
+    document.getElementById('del-board-sub').textContent='Cannot delete';
+    document.getElementById('del-board-step2').style.display='block';
+    document.getElementById('del-board-step2').innerHTML='<div style="font-size:12px;color:var(--text2)">You need at least one board. Create another board before deleting this one.</div>';
+    document.getElementById('del-board-confirm').style.display='none';
+    document.getElementById('del-board-confirm2').style.display='none';
+    deleteBoardModal.classList.add('open');
+    return;
+  }
+  resetDeleteBoardModal();
+  pendingDeleteBoardId=boardId;
+  document.getElementById('del-board-name').textContent=sp.name;
+  document.getElementById('del-board-sub').textContent=(BOARD_KIND_META[boardKind(sp)]?.chip||'Board')+' · permanent';
+  document.getElementById('del-board-step2').style.display='none';
+  document.getElementById('del-board-step2').innerHTML='<div style="font-size:12px;font-weight:600;color:var(--red);margin-bottom:4px">Are you sure?</div><div style="font-size:11px;color:var(--text2);line-height:1.5">Click again to permanently delete this board. This action cannot be undone.</div>';
+  document.getElementById('del-board-confirm').style.display='';
+  document.getElementById('del-board-confirm2').style.display='none';
+  deleteBoardModal.classList.add('open');
+}
+
+['del-board-close','del-board-cancel'].forEach(id=>{
+  document.getElementById(id).addEventListener('click',closeDeleteBoardModal);
+});
+deleteBoardModal.addEventListener('click',e=>{if(e.target===deleteBoardModal)closeDeleteBoardModal();});
+
+document.getElementById('del-board-confirm').addEventListener('click',()=>{
+  if(!pendingDeleteBoardId)return;
+  // Step 2 — ask again
+  document.getElementById('del-board-step2').style.display='block';
+  document.getElementById('del-board-confirm').style.display='none';
+  document.getElementById('del-board-confirm2').style.display='';
+});
+
+document.getElementById('del-board-confirm2').addEventListener('click',async()=>{
+  const id=pendingDeleteBoardId;
+  if(!id||sprints.length<=1)return;
+  const wasActive=activeSprint===id;
+  sprints=sprints.filter(s=>s.id!==id);
+  delete sprintTasks[id];
+  if(wasActive){
+    activeSprint=sprints[0].id;
+  }
+  try{await store.set('board:'+id,null);}catch(e){}
+  await saveBoardsMeta();
+  closeDeleteBoardModal();
+  showPage('board');
+  renderSprintList();
+  await renderBoard();
+  updateTopbar();
+  subscribeBoard();
+});
+
+function updateTopbar(){
+  const sp=sprints.find(s=>s.id===activeSprint);if(!sp)return;
+  const kind=boardKind(sp);
+  document.getElementById('topbar-title').textContent=sp.name;
+  document.getElementById('topbar-chip').textContent=BOARD_KIND_META[kind]?.chip||'Board';
+  const datesEl=document.getElementById('topbar-dates');
+  const progWrap=document.querySelector('.prog-wrap');
+  if(kind==='sprint'&&sp.start&&sp.end){
+    datesEl.classList.remove('is-muted');
+    datesEl.textContent=fmt(sp.start)+' → '+fmt(sp.end)+' · '+daysLeft(sp.end)+'d left';
+    if(progWrap)progWrap.classList.remove('is-hidden');
+    const pct=sprintPct(sp.start,sp.end);
+    document.getElementById('prog-fill').style.width=pct+'%';
+    document.getElementById('prog-label').textContent=pct+'% elapsed';
+  }else{
+    datesEl.textContent=sp.goal||boardSubtitle(sp);
+    datesEl.classList.remove('is-muted');
+    if(progWrap)progWrap.classList.add('is-hidden');
+  }
+}
+
+async function saveBoardsMeta(){
+  try{
+    await store.set('boards',JSON.stringify({boards:sprints,active:activeSprint}));
+  }catch(e){console.warn('Boards meta save failed',e);}
+}
+
+async function loadBoardsMeta(){
+  try{
+    const r=await store.get('boards');
+    if(!r||!r.value)return;
+    let data=r.value;
+    if(typeof data==='string'){
+      data=JSON.parse(data);
+      // Handle accidental double-encoding from REST writes
+      if(typeof data==='string')data=JSON.parse(data);
+    }
+    if(Array.isArray(data.boards)&&data.boards.length){
+      sprints=data.boards.map(b=>({
+        id:b.id,
+        kind:b.kind||'sprint',
+        name:b.name||'Untitled',
+        start:b.start||'',
+        end:b.end||'',
+        goal:b.goal||'',
+      }));
+    }
+    if(data.active&&sprints.some(s=>s.id===data.active))activeSprint=data.active;
+  }catch(e){console.warn('Boards meta load failed',e);}
+}
+
+/* ── New board menu + modal ── */
+const sprintModal=document.getElementById('sprint-modal');
+const newMenu=document.getElementById('new-menu');
+const newBoardBtn=document.getElementById('new-board-btn');
+
+newBoardBtn.addEventListener('click',e=>{
+  e.stopPropagation();
+  newMenu.classList.toggle('open');
+});
+document.addEventListener('click',e=>{
+  if(!e.target.closest('.new-menu-wrap'))newMenu.classList.remove('open');
+});
+newMenu.querySelectorAll('.new-menu-item').forEach(btn=>{
+  btn.addEventListener('click',e=>{
+    e.stopPropagation();
+    newMenu.classList.remove('open');
+    openBoardModal(btn.dataset.kind);
+  });
+});
+
+function openBoardModal(kind){
+  kind=kind||'sprint';
+  document.getElementById('sp-kind').value=kind;
+  const datesRow=document.getElementById('sp-dates-row');
+  const title=document.getElementById('sp-modal-title');
+  const sub=document.getElementById('sp-modal-sub');
+  const goalLabel=document.getElementById('sp-goal-label');
+  const goal=document.getElementById('sp-goal');
+  const saveBtn=document.getElementById('sprint-save');
+  const nameInput=document.getElementById('sp-name');
+
+  if(kind==='sprint'){
+    title.textContent='New Sprint';
+    sub.textContent='Timed board with start & end dates';
+    goalLabel.textContent='Goal';
+    goal.placeholder='Sprint goal…';
+    saveBtn.textContent='Create Sprint';
+    datesRow.style.display='grid';
+    const sprintCount=sprints.filter(s=>boardKind(s)==='sprint').length;
+    nameInput.value='Sprint '+(sprintCount+1);
+    nameInput.placeholder='e.g. Sprint 3 — SmartBot';
+    const dur=parseInt(document.getElementById('sprint-dur').value||2);
+    const today=new Date(),end=new Date(today);end.setDate(end.getDate()+dur*7);
+    document.getElementById('sp-start').value=today.toISOString().split('T')[0];
+    document.getElementById('sp-end').value=end.toISOString().split('T')[0];
+  }else if(kind==='backlog'){
+    title.textContent='New Backlog';
+    sub.textContent='Queue work before it enters a sprint';
+    goalLabel.textContent='Description';
+    goal.placeholder='Optional notes…';
+    saveBtn.textContent='Create Backlog';
+    datesRow.style.display='none';
+    nameInput.value='Backlog';
+    nameInput.placeholder='e.g. Product Backlog';
+    document.getElementById('sp-start').value='';
+    document.getElementById('sp-end').value='';
+  }else{
+    title.textContent='New Parking Board';
+    sub.textContent='Park items outside sprint and backlog';
+    goalLabel.textContent='Description';
+    goal.placeholder='What belongs on this board…';
+    saveBtn.textContent='Create Board';
+    datesRow.style.display='none';
+    nameInput.value='Parking';
+    nameInput.placeholder='e.g. Icebox / Later';
+    document.getElementById('sp-start').value='';
+    document.getElementById('sp-end').value='';
+  }
+  goal.value='';
+  sprintModal.classList.add('open');
+  setTimeout(()=>nameInput.focus(),50);
+}
+
+function openSprintModal(){openBoardModal('sprint');}
+
 ['sprint-close','sprint-cancel'].forEach(id=>document.getElementById(id).addEventListener('click',()=>sprintModal.classList.remove('open')));
 sprintModal.addEventListener('click',e=>{if(e.target===sprintModal)sprintModal.classList.remove('open');});
-document.getElementById('sprint-save').addEventListener('click',()=>{
+document.getElementById('sprint-save').addEventListener('click',async()=>{
+  const kind=document.getElementById('sp-kind').value||'sprint';
   const name=document.getElementById('sp-name').value.trim();
-  const start=document.getElementById('sp-start').value;
-  const end=document.getElementById('sp-end').value;
-  if(!name||!start||!end)return;
-  const id='sprint-'+Date.now();
-  sprints.push({id,name,start,end,goal:document.getElementById('sp-goal').value.trim()});
+  if(!name)return;
+  let start='',end='';
+  if(kind==='sprint'){
+    start=document.getElementById('sp-start').value;
+    end=document.getElementById('sp-end').value;
+    if(!start||!end)return;
+  }
+  const id=kind+'-'+Date.now();
+  sprints.push({
+    id,kind,name,start,end,
+    goal:document.getElementById('sp-goal').value.trim(),
+  });
   sprintTasks[id]={smartbot:[],zenchat:[]};
   activeSprint=id;
+  await saveBoardsMeta();
+  // Seed empty board state so live sync has a key
+  await store.set('board:'+id,JSON.stringify({
+    smartbot:[{id:'customer',name:'Customer Requests',items:[]},{id:'internal',name:'Internal',items:[]}],
+    zenchat:[{id:'customer',name:'Customer Requests',items:[]},{id:'internal',name:'Internal',items:[]}],
+  }));
   renderSprintList();renderBoard();updateTopbar();sprintModal.classList.remove('open');
-  showPage('board',document.getElementById('nav-board'));
+  showPage('board');
+  subscribeBoard();
 });
 
 /* ── Select mode / move tasks ── */
@@ -767,9 +1076,13 @@ function updateMoveBar(){
     moveBar.classList.add('show');
     document.getElementById('move-bar-text').textContent=checked+' item'+(checked>1?'s':'')+' selected';
     const sel=document.getElementById('move-target-select');
-    sel.innerHTML='<option value="">— Select sprint —</option>';
+    sel.innerHTML='<option value="">— Select board —</option>';
     sprints.filter(s=>s.id!==activeSprint).forEach(s=>{
-      const o=document.createElement('option');o.value=s.id;o.textContent=s.name;sel.appendChild(o);
+      const o=document.createElement('option');
+      o.value=s.id;
+      const k=boardKind(s);
+      o.textContent=(BOARD_KIND_META[k]?.chip||'')+' · '+s.name;
+      sel.appendChild(o);
     });
   } else {
     moveBar.classList.remove('show');
@@ -787,20 +1100,54 @@ document.getElementById('move-cancel-btn').addEventListener('click',()=>{
   document.querySelectorAll('.card-select-wrap').forEach(w=>w.style.display='none');
 });
 
-document.getElementById('move-confirm-btn').addEventListener('click',()=>{
+document.getElementById('move-confirm-btn').addEventListener('click',async()=>{
   const targetId=document.getElementById('move-target-select').value;
   if(!targetId)return;
-  if(!sprintTasks[targetId])sprintTasks[targetId]={smartbot:[],zenchat:[]};
-  const cards=document.querySelectorAll('.item-card.selected-for-move');
-  cards.forEach(card=>{
-    const area=card.closest('[id$="-items"]')?.id.replace('-items','');
-    if(!area)return;
-    // remove from current sprint data (visual removal)
-    card.style.transition='opacity .2s,transform .2s';
-    card.style.opacity='0';card.style.transform='translateX(-8px)';
-    setTimeout(()=>card.remove(),220);
+
+  // Prefer top-level selections (skip nested cards whose parent is also selected)
+  const selected=[...document.querySelectorAll('.item-card.selected-for-move')];
+  const roots=selected.filter(card=>!selected.some(p=>p!==card&&p.contains(card)));
+  const moved={smartbot:[],zenchat:[]};
+  roots.forEach(card=>{
+    const areaEl=card.closest('#smartbot-items, #zenchat-items');
+    if(!areaEl)return;
+    const area=areaEl.id.replace('-items','');
+    const data=serializeCard(card);
+    if(data)moved[area].push(data);
+    card.remove();
   });
-  setTimeout(()=>{updateStats();},250);
+
+  await saveBoardState();
+
+  // Append into target board state
+  let targetState=null;
+  try{
+    const r=await store.get('board:'+targetId);
+    if(r?.value){
+      const val=typeof r.value==='string'?r.value:JSON.stringify(r.value);
+      targetState=JSON.parse(val);
+    }
+  }catch(e){}
+  if(!targetState||!targetState.smartbot){
+    targetState={
+      smartbot:[{id:'customer',name:'Customer Requests',items:[]},{id:'internal',name:'Internal',items:[]}],
+      zenchat:[{id:'customer',name:'Customer Requests',items:[]},{id:'internal',name:'Internal',items:[]}],
+    };
+  }
+  ['smartbot','zenchat'].forEach(area=>{
+    if(!moved[area].length)return;
+    if(!Array.isArray(targetState[area]))targetState[area]=[];
+    let sec=targetState[area].find(s=>s.id==='internal')||targetState[area][0];
+    if(!sec){
+      sec={id:'incoming',name:'Incoming',items:[]};
+      targetState[area].push(sec);
+    }
+    if(!Array.isArray(sec.items))sec.items=[];
+    sec.items.push(...moved[area]);
+  });
+  await store.set('board:'+targetId,JSON.stringify(targetState));
+
+  updateStats();
   moveBar.classList.remove('show');
   selectMode=false;
   document.getElementById('select-mode-btn').textContent='☑ Select to Move';
@@ -868,9 +1215,14 @@ function updateStats(){
   document.getElementById('customer-count').textContent=cust;
   document.getElementById('internal-count').textContent=intl;
   document.getElementById('done-count').textContent=done;
-  document.getElementById('nav-total').textContent=total;
   const sp=sprints.find(s=>s.id===activeSprint);
-  if(sp){const el=sprintPct(sp.start,sp.end);document.getElementById('prog-fill').style.width=el+'%';document.getElementById('prog-label').textContent=el+'% elapsed · '+done+'/'+total+' done';}
+  if(sp&&boardKind(sp)==='sprint'&&sp.start&&sp.end){
+    const el=sprintPct(sp.start,sp.end);
+    document.getElementById('prog-fill').style.width=el+'%';
+    document.getElementById('prog-label').textContent=el+'% elapsed · '+done+'/'+total+' done';
+  }else if(sp){
+    document.getElementById('prog-label').textContent=done+'/'+total+' done';
+  }
   ['smartbot','zenchat'].forEach(area=>{
     const pfx=area==='smartbot'?'sb':'zc';
     const col=document.getElementById(area+'-items');
@@ -1654,15 +2006,21 @@ function updateMyTasksBadge(){
 }
 
 /* ── Init ── */
-loadMyTasks();
-renderBoard();
-renderSprintList();
-updateTopbar();
-renderStatusSettings();
-populateSelect(document.getElementById('edit-status-sel'),'none');
-renderMyTasks();
-updateMyTasksBadge();
-subscribeBoard();
+(async function init(){
+  await loadBoardsMeta();
+  // Ensure legacy sprint-1 has kind
+  sprints.forEach(s=>{if(!s.kind)s.kind='sprint';});
+  loadMyTasks();
+  await renderBoard();
+  renderSprintList();
+  updateTopbar();
+  renderStatusSettings();
+  populateSelect(document.getElementById('edit-status-sel'),'none');
+  renderMyTasks();
+  updateMyTasksBadge();
+  subscribeBoard();
+  await saveBoardsMeta();
+})();
 </script>
 </body>
 </html>
