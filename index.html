@@ -885,23 +885,8 @@ body.view-only .mytask-title{pointer-events:none}
         <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" title="Open menu" aria-label="Open menu">☰</button>
         <div class="topbar-title" id="topbar-title">Sprint 1</div>
         <span class="sprint-chip" id="topbar-chip">Sprint 1</span>
-        <span class="topbar-dates" id="topbar-dates"></span>
-        <span class="live-dot" id="live-dot" title="Live sync active">● Live</span>
-        <div class="prog-wrap">
-          <div class="prog-bar"><div class="prog-fill" id="prog-fill" style="width:0%"></div></div>
-          <span class="prog-label" id="prog-label"></span>
-        </div>
       </div>
       <div class="topbar-right">
-        <div class="topbar-stats">
-          <div class="tstat"><div class="tstat-num" id="total-count">—</div><div class="tstat-label">Total</div></div>
-          <div class="tstat-div"></div>
-          <div class="tstat"><div class="tstat-num" id="customer-count">—</div><div class="tstat-label">Customer</div></div>
-          <div class="tstat-div"></div>
-          <div class="tstat"><div class="tstat-num" id="internal-count">—</div><div class="tstat-label">Internal</div></div>
-          <div class="tstat-div"></div>
-          <div class="tstat"><div class="tstat-num green" id="done-count">—</div><div class="tstat-label">Done</div></div>
-        </div>
         <span class="access-mode-chip" id="access-mode-chip"></span>
         <button type="button" class="access-logout-btn" id="access-logout-btn" title="Log out and choose access mode">Logout</button>
       </div>
@@ -1320,13 +1305,8 @@ function showPage(id,btn){
   }else if(btn){
     btn.classList.add('active');
   }
-  // Board stats only meaningful on the board page; keep Logout visible
-  const topStats=document.querySelector('.topbar-stats');
+  // Keep Logout visible on all pages
   const moveBarEl=document.getElementById('move-bar');
-  if(topStats){
-    if(id==='board')topStats.style.removeProperty('display');
-    else topStats.style.display='none';
-  }
   if(id!=='board'&&moveBarEl)moveBarEl.classList.remove('show');
   closeMobileNav();
 }
@@ -1462,20 +1442,6 @@ function updateTopbar(){
   const kind=boardKind(sp);
   document.getElementById('topbar-title').textContent=sp.name;
   document.getElementById('topbar-chip').textContent=BOARD_KIND_META[kind]?.chip||'Board';
-  const datesEl=document.getElementById('topbar-dates');
-  const progWrap=document.querySelector('.prog-wrap');
-  if(kind==='sprint'&&sp.start&&sp.end){
-    datesEl.classList.remove('is-muted');
-    datesEl.textContent=fmt(sp.start)+' → '+fmt(sp.end)+' · '+daysLeft(sp.end)+'d left';
-    if(progWrap)progWrap.classList.remove('is-hidden');
-    const pct=sprintPct(sp.start,sp.end);
-    document.getElementById('prog-fill').style.width=pct+'%';
-    document.getElementById('prog-label').textContent=pct+'% elapsed';
-  }else{
-    datesEl.textContent=sp.goal||boardSubtitle(sp);
-    datesEl.classList.remove('is-muted');
-    if(progWrap)progWrap.classList.add('is-hidden');
-  }
 }
 
 async function saveBoardsMeta(){
@@ -1768,30 +1734,16 @@ function buildStatusWidget(currentId){
 
 /* ── Stats ── */
 function updateStats(){
-  let cust=0,intl=0,done=0,total=0;
-  document.querySelectorAll('.sort-list > .item-card').forEach(c=>{
-    total++;if(c.dataset.source==='customer')cust++;else intl++;
-    const sw=c.querySelector('.card-status-wrap');if(sw&&sw.dataset.st==='done')done++;
-  });
-  document.getElementById('total-count').textContent=total;
-  document.getElementById('customer-count').textContent=cust;
-  document.getElementById('internal-count').textContent=intl;
-  document.getElementById('done-count').textContent=done;
-  const sp=sprints.find(s=>s.id===activeSprint);
-  if(sp&&boardKind(sp)==='sprint'&&sp.start&&sp.end){
-    const el=sprintPct(sp.start,sp.end);
-    document.getElementById('prog-fill').style.width=el+'%';
-    document.getElementById('prog-label').textContent=el+'% elapsed · '+done+'/'+total+' done';
-  }else if(sp){
-    document.getElementById('prog-label').textContent=done+'/'+total+' done';
-  }
   ['smartbot','zenchat'].forEach(area=>{
     const pfx=area==='smartbot'?'sb':'zc';
     const col=document.getElementById(area+'-items');
+    if(!col)return;
     const secs=col.querySelectorAll('.board-section').length;
     const cards=col.querySelectorAll('.sort-list > .item-card:not(.status-filtered-out)').length;
-    document.getElementById(pfx+'-customer-pill').textContent=secs+' section'+(secs!==1?'s':'');
-    document.getElementById(pfx+'-internal-pill').textContent=cards+' task'+(cards!==1?'s':'');
+    const custPill=document.getElementById(pfx+'-customer-pill');
+    const intlPill=document.getElementById(pfx+'-internal-pill');
+    if(custPill)custPill.textContent=secs+' section'+(secs!==1?'s':'');
+    if(intlPill)intlPill.textContent=cards+' task'+(cards!==1?'s':'');
   });
   applyStatusFilter();
 }
