@@ -30,7 +30,7 @@
   --green:#15803d;--green-lt:#f0fdf4;--green-bd:#bbf7d0;
   --purple:#6d28d9;--purple-lt:#f5f3ff;--purple-bd:#ddd6fe;
   /* Sidebar */
-  --sidebar-w:220px;
+  --sidebar-w:248px;
   --sidebar-collapsed:48px;
   --shadow-sm:0 1px 2px rgba(0,0,0,.06),0 1px 3px rgba(0,0,0,.04);
   --shadow-md:0 4px 16px rgba(0,0,0,.07),0 1px 3px rgba(0,0,0,.04);
@@ -110,6 +110,45 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .field-row.sprint-dates{display:grid}
 .topbar-dates.is-muted,.prog-wrap.is-hidden{display:none}
 
+/* Workstream accordion */
+.ws-group{margin-bottom:8px}
+.ws-toggle{
+  display:flex;align-items:center;gap:8px;width:100%;padding:8px;border:none;border-radius:var(--radius);
+  background:none;cursor:pointer;font-family:'Inter',sans-serif;color:var(--text1);text-align:left;
+}
+.ws-toggle:hover{background:var(--surface2)}
+.ws-toggle-chevron{font-size:9px;color:var(--text4);width:12px;flex-shrink:0;transition:transform .15s}
+.ws-group.open .ws-toggle-chevron{transform:rotate(90deg)}
+.ws-toggle-icon{font-size:14px;width:20px;text-align:center;flex-shrink:0}
+.ws-toggle-label{font-size:12px;font-weight:600;flex:1;overflow:hidden;white-space:nowrap}
+.sidebar.collapsed .ws-toggle-label,.sidebar.collapsed .ws-toggle-chevron{opacity:0;pointer-events:none}
+.ws-body{display:none;padding:0 0 4px 8px}
+.ws-group.open .ws-body{display:block}
+.sidebar.collapsed .ws-body{display:none!important}
+.ws-link{
+  display:flex;align-items:center;gap:8px;width:100%;padding:6px 8px;border:none;border-radius:var(--radius);
+  background:none;cursor:pointer;font-family:'Inter',sans-serif;font-size:12px;font-weight:500;
+  color:var(--text2);text-align:left;
+}
+.ws-link:hover{background:var(--surface2)}
+.ws-link.active{background:var(--accent-lt);color:var(--accent);font-weight:600}
+.ws-boards-wrap{margin:2px 0 6px;padding-left:4px}
+.ws-boards-title{font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;color:var(--text4);padding:6px 8px 2px}
+.ws-boards-list{display:flex;flex-direction:column;gap:1px}
+.sprint-item{padding-left:10px}
+.project-chip{font-size:10px;font-family:'JetBrains Mono',monospace;background:var(--accent-lt);color:var(--accent);border:1px solid var(--accent-md);border-radius:4px;padding:2px 7px;white-space:nowrap;flex-shrink:0}
+.roadmap-empty{max-width:520px;padding:48px 20px;text-align:center;color:var(--text3)}
+.roadmap-empty h2{font-size:16px;font-weight:700;color:var(--text1);margin-bottom:8px}
+.roadmap-empty p{font-size:12px;line-height:1.5}
+.settings-project-tabs{display:flex;gap:6px;margin-bottom:10px}
+.settings-project-tab{
+  font-size:11px;font-weight:600;padding:5px 10px;border-radius:5px;border:1px solid var(--border2);
+  background:var(--surface);color:var(--text2);cursor:pointer;font-family:'Inter',sans-serif;
+}
+.settings-project-tab.active{background:var(--accent-lt);border-color:var(--accent-md);color:var(--accent)}
+.dev-project-block{margin-bottom:14px}
+.dev-project-block h4{font-size:11px;font-weight:600;color:var(--text2);margin-bottom:6px}
+
 /* ── Main ── */
 .main-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden;min-width:0}
 
@@ -170,8 +209,8 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .status-filter-opt input{accent-color:var(--accent);width:14px;height:14px;margin:0;flex-shrink:0}
 .item-card.status-filtered-out,.item-card.filtered-out{display:none!important}
 
-/* Columns */
-.columns{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start}
+/* Columns — single project board */
+.columns{display:grid;grid-template-columns:1fr;gap:18px;align-items:start;max-width:920px}
 .col-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px}
 .col-title{font-size:12px;font-weight:600;color:var(--text1);display:flex;align-items:center;gap:7px}
 .col-icon{width:20px;height:20px;border-radius:5px;display:flex;align-items:center;justify-content:center;font-size:11px;background:var(--surface2)}
@@ -703,6 +742,12 @@ body.view-only .mytask-title{pointer-events:none}
     </div>
     <div class="modal-body">
       <input type="hidden" id="sp-kind" value="sprint">
+      <div class="field-group"><div class="field-label">Project</div>
+        <select class="field-select" id="sp-project">
+          <option value="smartbot">SmartBot</option>
+          <option value="zenchat">ZenChat</option>
+        </select>
+      </div>
       <div class="field-group"><div class="field-label">Name</div><input class="field-input" id="sp-name" type="text" placeholder="e.g. Sprint 3 — SmartBot"></div>
       <div class="field-row sprint-dates" id="sp-dates-row">
         <div class="field-group"><div class="field-label">Start</div><input class="field-input" id="sp-start" type="date"></div>
@@ -841,18 +886,38 @@ body.view-only .mytask-title{pointer-events:none}
       <button class="collapse-btn" id="collapse-btn" title="Toggle sidebar">◀</button>
     </div>
     <div class="sidebar-content">
-      <div class="sidebar-section-label">Global</div>
-      <div style="display:flex;flex-direction:column;gap:1px;margin-bottom:8px">
-        <button class="nav-item" id="nav-mytasks" data-tip="My Tasks" onclick="showPage('mytasks',this)">
-          <span class="nav-icon">✅</span><span class="nav-label">My Tasks</span>
-          <span class="nav-badge" id="nav-mytasks-count">—</span>
+      <div class="ws-group open" data-project="smartbot" id="ws-smartbot">
+        <button type="button" class="ws-toggle" data-ws="smartbot">
+          <span class="ws-toggle-chevron">▶</span>
+          <span class="ws-toggle-icon">🤖</span>
+          <span class="ws-toggle-label">SmartBot</span>
         </button>
-        <button class="nav-item" id="nav-settings" data-tip="Settings" onclick="showPage('settings',this)">
-          <span class="nav-icon">⚙️</span><span class="nav-label">Settings</span>
-        </button>
+        <div class="ws-body">
+          <div class="ws-boards-wrap">
+            <div class="ws-boards-title">Sprint boards</div>
+            <div class="ws-boards-list" id="boards-smartbot"></div>
+          </div>
+          <button type="button" class="ws-link" data-page="roadmap" data-project="smartbot" data-tip="Roadmap">Roadmap</button>
+          <button type="button" class="ws-link" data-page="mytasks" data-project="smartbot" data-tip="Tasks">Tasks</button>
+          <button type="button" class="ws-link" data-page="settings" data-project="smartbot" data-tip="Settings">Settings</button>
+        </div>
       </div>
-      <div class="sidebar-section-label">Sprint boards</div>
-      <div id="sprint-list" style="display:flex;flex-direction:column;gap:1px"></div>
+      <div class="ws-group open" data-project="zenchat" id="ws-zenchat">
+        <button type="button" class="ws-toggle" data-ws="zenchat">
+          <span class="ws-toggle-chevron">▶</span>
+          <span class="ws-toggle-icon">💬</span>
+          <span class="ws-toggle-label">ZenChat</span>
+        </button>
+        <div class="ws-body">
+          <div class="ws-boards-wrap">
+            <div class="ws-boards-title">Sprint boards</div>
+            <div class="ws-boards-list" id="boards-zenchat"></div>
+          </div>
+          <button type="button" class="ws-link" data-page="roadmap" data-project="zenchat" data-tip="Roadmap">Roadmap</button>
+          <button type="button" class="ws-link" data-page="mytasks" data-project="zenchat" data-tip="My Tasks">My Tasks</button>
+          <button type="button" class="ws-link" data-page="settings" data-project="zenchat" data-tip="Settings">Settings</button>
+        </div>
+      </div>
     </div>
     <div class="sidebar-footer">
       <div class="new-menu-wrap">
@@ -884,7 +949,8 @@ body.view-only .mytask-title{pointer-events:none}
       <div class="topbar-left">
         <button type="button" class="mobile-menu-btn" id="mobile-menu-btn" title="Open menu" aria-label="Open menu">☰</button>
         <div class="topbar-title" id="topbar-title">Sprint 1</div>
-        <span class="sprint-chip" id="topbar-chip">Sprint 1</span>
+        <span class="sprint-chip" id="topbar-chip">Sprint</span>
+        <span class="project-chip" id="project-chip">SmartBot</span>
       </div>
       <div class="topbar-right">
         <span class="access-mode-chip" id="access-mode-chip"></span>
@@ -932,26 +998,22 @@ body.view-only .mytask-title{pointer-events:none}
       <div class="columns">
         <div>
           <div class="col-header">
-            <div class="col-title"><div class="col-icon">🤖</div> SmartBot</div>
+            <div class="col-title"><div class="col-icon" id="board-col-icon">🤖</div> <span id="board-col-title">SmartBot</span></div>
             <div class="col-right">
-              <span class="col-pill" id="sb-customer-pill">—</span>
-              <span class="col-pill" id="sb-internal-pill">—</span>
+              <span class="col-pill" id="board-sections-pill">—</span>
+              <span class="col-pill" id="board-tasks-pill">—</span>
             </div>
           </div>
-          <div id="smartbot-items"></div>
-          <button class="add-section-btn" onclick="addSection('smartbot')">＋ Add Section</button>
+          <div id="board-items"></div>
+          <button class="add-section-btn" id="add-section-btn" type="button">＋ Add Section</button>
         </div>
-        <div>
-          <div class="col-header">
-            <div class="col-title"><div class="col-icon">💬</div> ZenChat</div>
-            <div class="col-right">
-              <span class="col-pill" id="zc-customer-pill">—</span>
-              <span class="col-pill" id="zc-internal-pill">—</span>
-            </div>
-          </div>
-          <div id="zenchat-items"></div>
-          <button class="add-section-btn" onclick="addSection('zenchat')">＋ Add Section</button>
-        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-roadmap">
+      <div class="roadmap-empty">
+        <h2 id="roadmap-title">SmartBot Roadmap</h2>
+        <p>Roadmap view is coming soon. Use sprint boards for day-to-day planning.</p>
       </div>
     </div>
 
@@ -999,11 +1061,24 @@ body.view-only .mytask-title{pointer-events:none}
         </div>
         <div class="settings-section">
           <div class="settings-section-title">Developers</div>
-          <div class="settings-section-desc">Names available on the Developer field and board filter.</div>
-          <div id="developer-options-list"></div>
-          <div class="add-status-row">
-            <input class="stn-input" id="new-developer-input" type="text" placeholder="Developer name…">
-            <button class="stn-add-btn" onclick="addDeveloperOption()">Add</button>
+          <div class="settings-section-desc">Per-project names for the Developer field and board filter.</div>
+          <div class="settings-project-tabs" id="settings-dev-tabs">
+            <button type="button" class="settings-project-tab active" data-project="smartbot">SmartBot</button>
+            <button type="button" class="settings-project-tab" data-project="zenchat">ZenChat</button>
+          </div>
+          <div class="dev-project-block" data-project="smartbot" id="dev-block-smartbot">
+            <div id="developer-options-list-smartbot"></div>
+            <div class="add-status-row">
+              <input class="stn-input" id="new-developer-input-smartbot" type="text" placeholder="SmartBot developer…">
+              <button class="stn-add-btn" type="button" data-add-dev="smartbot">Add</button>
+            </div>
+          </div>
+          <div class="dev-project-block" data-project="zenchat" id="dev-block-zenchat" style="display:none">
+            <div id="developer-options-list-zenchat"></div>
+            <div class="add-status-row">
+              <input class="stn-input" id="new-developer-input-zenchat" type="text" placeholder="ZenChat developer…">
+              <button class="stn-add-btn" type="button" data-add-dev="zenchat">Add</button>
+            </div>
           </div>
         </div>
         <div class="settings-section">
@@ -1161,8 +1236,25 @@ const DEFAULT_STATUS_OPTIONS=[
 let statusOptions=DEFAULT_STATUS_OPTIONS.map(s=>({...s}));
 const STATUS_COLORS=['#fca5a5','#fcd34d','#6ee7b7','#93c5fd','#c4b5fd','#f9a8d4','#d1d5db','#a5b4fc'];
 let selColor=STATUS_COLORS[0];
-let developerNames=[];
+const DEFAULT_DEVELOPERS={
+  smartbot:['Shubham','Amit','Nipun'],
+  zenchat:['Aryan','Tabish','Saipranay'],
+};
+let developerNamesByProject={
+  smartbot:DEFAULT_DEVELOPERS.smartbot.slice(),
+  zenchat:DEFAULT_DEVELOPERS.zenchat.slice(),
+};
 let developerFilter='any';
+let settingsDevProject='smartbot';
+
+const PROJECT_META={
+  smartbot:{id:'smartbot',label:'SmartBot',icon:'🤖'},
+  zenchat:{id:'zenchat',label:'ZenChat',icon:'💬'},
+};
+function isProject(p){return p==='smartbot'||p==='zenchat';}
+function projectLabel(p){return PROJECT_META[p]?.label||'SmartBot';}
+function projectIcon(p){return PROJECT_META[p]?.icon||'🤖';}
+function currentDevelopers(){return developerNamesByProject[activeProject]||[];}
 
 const JIRA_DESC=`SmartBot cannot see appointments across centres — when a guest interacts with SmartBot scoped to Centre A, it cannot retrieve appointments held at Centre B, causing guests to be incorrectly told they have no future bookings.
 
@@ -1173,8 +1265,12 @@ For multi-location businesses routing all calls through one central concierge ce
 The org-level setting enable_hpc_events_across_center is already ON for affected accounts and is used by the rest of HyperConnect to share guest timeline events across centres. SmartBot's appointment lookup does not honour this setting.`;
 
 /* ── Boards (sprints, backlog, parking) ── */
-let sprints=[{id:'sprint-1',kind:'sprint',name:'Sprint 1 — SmartBot & ZenChat',start:'2026-09-02',end:'2026-09-16',goal:'Q3 focus areas'}];
-let activeSprint='sprint-1';
+let sprints=[
+  {id:'sprint-1-smartbot',kind:'sprint',project:'smartbot',name:'Sprint 1',start:'2026-09-02',end:'2026-09-16',goal:'Q3 focus areas'},
+  {id:'sprint-1-zenchat',kind:'sprint',project:'zenchat',name:'Sprint 1',start:'2026-09-02',end:'2026-09-16',goal:'Q3 focus areas'},
+];
+let activeSprint='sprint-1-smartbot';
+let activeProject='smartbot';
 
 const BOARD_KIND_META={
   sprint:{label:'Sprints',chip:'Sprint',dot:'kind-sprint'},
@@ -1182,6 +1278,28 @@ const BOARD_KIND_META={
   parking:{label:'Parking',chip:'Parking',dot:'kind-parking'},
 };
 function boardKind(sp){return (sp&&sp.kind)||'sprint';}
+function boardProject(sp){return isProject(sp?.project)?sp.project:'smartbot';}
+function activeBoardProject(){
+  const sp=sprints.find(s=>s.id===activeSprint);
+  return sp?boardProject(sp):activeProject;
+}
+function emptySections(){
+  return [
+    {id:'customer',name:'Customer Requests',items:[]},
+    {id:'internal',name:'Internal',items:[]},
+  ];
+}
+function emptyBoardState(project){
+  const p=isProject(project)?project:'smartbot';
+  return {[p]:emptySections()};
+}
+function tasksToSections(tasks){
+  const arr=Array.isArray(tasks)?tasks:[];
+  return [
+    {id:'customer',name:'Customer Requests',items:arr.filter(i=>i.source==='customer')},
+    {id:'internal',name:'Internal',items:arr.filter(i=>i.source==='internal')},
+  ];
+}
 
 /* ── Tasks — stored per sprint ── */
 const baseData={
@@ -1217,8 +1335,11 @@ const baseData={
   ]
 };
 
-// sprintTasks: sprintId → {smartbot:[], zenchat:[]}
-const sprintTasks={'sprint-1':JSON.parse(JSON.stringify(baseData))};
+// sprintTasks: boardId → { smartbot?: flatTasks[] } or { zenchat?: flatTasks[] }
+const sprintTasks={
+  'sprint-1-smartbot':{smartbot:JSON.parse(JSON.stringify(baseData.smartbot))},
+  'sprint-1-zenchat':{zenchat:JSON.parse(JSON.stringify(baseData.zenchat))},
+};
 
 const typeClass={bug:"badge-bug",new:"badge-new",enhance:"badge-enhance",infra:"badge-infra",compliance:"badge-compliance",triage:"badge-triage"};
 const typeLabels={bug:"Bug",new:"New",enhance:"Enhancement",infra:"Infra",compliance:"Compliance",triage:"Triage"};
@@ -1296,16 +1417,29 @@ document.addEventListener('keydown',e=>{
 });
 
 /* ── Page nav ── */
-function showPage(id,btn){
+function showPage(id,btn,project){
+  if(isProject(project))activeProject=project;
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.getElementById('page-'+id).classList.add('active');
-  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  document.querySelectorAll('.nav-item,.ws-link').forEach(n=>n.classList.remove('active'));
   if(id==='board'){
-    // Board view is selected via the sprint-board list, not a nav item
-  }else if(btn){
-    btn.classList.add('active');
+    // Board selection is highlighted in the sprint list via renderProjectNav
+  }else{
+    document.querySelectorAll('.sprint-item').forEach(n=>n.classList.remove('active'));
+    if(btn)btn.classList.add('active');
   }
-  // Keep Logout visible on all pages
+  if(id==='roadmap'){
+    const title=document.getElementById('roadmap-title');
+    if(title)title.textContent=projectLabel(activeProject)+' Roadmap';
+  }
+  if(id==='settings'){
+    settingsDevProject=activeProject;
+    syncSettingsDevTabs();
+    renderDeveloperSettings();
+  }
+  if(id==='board'||id==='settings'){
+    populateDeveloperFilter();
+  }
   const moveBarEl=document.getElementById('move-bar');
   if(id!=='board'&&moveBarEl)moveBarEl.classList.remove('show');
   closeMobileNav();
@@ -1316,7 +1450,7 @@ function fmt(d){const dt=new Date(d+'T00:00:00');return dt.toLocaleDateString('e
 function daysLeft(e){const now=new Date();now.setHours(0,0,0,0);const end=new Date(e+'T00:00:00');return Math.max(0,Math.round((end-now)/864e5));}
 function sprintPct(s,e){const st=new Date(s+'T00:00:00'),en=new Date(e+'T00:00:00'),now=new Date();now.setHours(0,0,0,0);return en>st?Math.round(Math.min(Math.max(now-st,0),en-st)/(en-st)*100):0;}
 
-/* ── Board list ── */
+/* ── Board list (per workstream) ── */
 function boardSubtitle(sp){
   const kind=boardKind(sp);
   if(kind==='sprint'&&sp.start&&sp.end)return fmt(sp.start)+' → '+fmt(sp.end);
@@ -1325,42 +1459,62 @@ function boardSubtitle(sp){
   return BOARD_KIND_META[kind]?.chip||kind;
 }
 
-function renderSprintList(){
-  const list=document.getElementById('sprint-list');list.innerHTML='';
-  const order=['sprint','backlog','parking'];
-  order.forEach(kind=>{
-    const group=sprints.filter(s=>boardKind(s)===kind);
-    if(!group.length)return;
-    const lab=document.createElement('div');
-    lab.className='board-kind-label';
-    lab.textContent=BOARD_KIND_META[kind].label;
-    list.appendChild(lab);
-    group.forEach(sp=>{
-      const row=document.createElement('div');
-      row.className='sprint-item'+(sp.id===activeSprint?' active':'');
-      row.innerHTML=`<span class="sprint-dot ${BOARD_KIND_META[kind].dot}"></span><span class="sprint-item-text"><div class="sprint-item-name">${sp.name}</div><div class="sprint-item-dates">${boardSubtitle(sp)}</div></span>`;
-      const delBtn=document.createElement('button');
-      delBtn.type='button';
-      delBtn.className='sprint-del-btn';
-      delBtn.title='Delete board';
-      delBtn.textContent='🗑';
-      delBtn.addEventListener('click',e=>{
-        e.stopPropagation();
-        openDeleteBoardModal(sp.id);
+function renderProjectNav(){
+  ['smartbot','zenchat'].forEach(project=>{
+    const list=document.getElementById('boards-'+project);
+    if(!list)return;
+    list.innerHTML='';
+    const order=['sprint','backlog','parking'];
+    order.forEach(kind=>{
+      const group=sprints.filter(s=>boardProject(s)===project&&boardKind(s)===kind);
+      if(!group.length)return;
+      const lab=document.createElement('div');
+      lab.className='board-kind-label';
+      lab.textContent=BOARD_KIND_META[kind].label;
+      list.appendChild(lab);
+      group.forEach(sp=>{
+        const row=document.createElement('div');
+        row.className='sprint-item'+(sp.id===activeSprint?' active':'');
+        row.innerHTML=`<span class="sprint-dot ${BOARD_KIND_META[kind].dot}"></span><span class="sprint-item-text"><div class="sprint-item-name">${sp.name}</div><div class="sprint-item-dates">${boardSubtitle(sp)}</div></span>`;
+        const delBtn=document.createElement('button');
+        delBtn.type='button';
+        delBtn.className='sprint-del-btn';
+        delBtn.title='Delete board';
+        delBtn.textContent='🗑';
+        delBtn.addEventListener('click',e=>{
+          e.stopPropagation();
+          openDeleteBoardModal(sp.id);
+        });
+        row.appendChild(delBtn);
+        row.addEventListener('click',()=>{
+          activeSprint=sp.id;
+          activeProject=boardProject(sp);
+          if(!sprintTasks[sp.id])sprintTasks[sp.id]={[activeProject]:[]};
+          saveBoardsMeta();
+          showPage('board');
+          renderBoard();renderProjectNav();updateTopbar();
+          populateDeveloperFilter();
+          subscribeBoard();
+        });
+        list.appendChild(row);
       });
-      row.appendChild(delBtn);
-      row.addEventListener('click',()=>{
-        activeSprint=sp.id;
-        if(!sprintTasks[sp.id])sprintTasks[sp.id]={smartbot:[],zenchat:[]};
-        saveBoardsMeta();
-        showPage('board');
-        renderBoard();renderSprintList();updateTopbar();
-        subscribeBoard();
-      });
-      list.appendChild(row);
     });
   });
 }
+function renderSprintList(){renderProjectNav();}
+
+document.querySelectorAll('.ws-toggle').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const group=document.getElementById('ws-'+btn.dataset.ws);
+    if(group)group.classList.toggle('open');
+  });
+});
+document.querySelectorAll('.ws-link').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    showPage(btn.dataset.page,btn,btn.dataset.project);
+  });
+});
+document.getElementById('add-section-btn')?.addEventListener('click',()=>addSection());
 
 /* ── Delete board (two-step popup) ── */
 let pendingDeleteBoardId=null;
@@ -1426,22 +1580,32 @@ document.getElementById('del-board-confirm2').addEventListener('click',async()=>
   delete sprintTasks[id];
   if(wasActive){
     activeSprint=sprints[0].id;
+    activeProject=boardProject(sprints[0]);
   }
   try{await store.set('board:'+id,null);}catch(e){}
   await saveBoardsMeta();
   closeDeleteBoardModal();
   showPage('board');
-  renderSprintList();
+  renderProjectNav();
   await renderBoard();
   updateTopbar();
+  populateDeveloperFilter();
   subscribeBoard();
 });
 
 function updateTopbar(){
   const sp=sprints.find(s=>s.id===activeSprint);if(!sp)return;
   const kind=boardKind(sp);
+  const project=boardProject(sp);
+  activeProject=project;
   document.getElementById('topbar-title').textContent=sp.name;
   document.getElementById('topbar-chip').textContent=BOARD_KIND_META[kind]?.chip||'Board';
+  const chip=document.getElementById('project-chip');
+  if(chip)chip.textContent=projectLabel(project);
+  const colTitle=document.getElementById('board-col-title');
+  const colIcon=document.getElementById('board-col-icon');
+  if(colTitle)colTitle.textContent=projectLabel(project);
+  if(colIcon)colIcon.textContent=projectIcon(project);
 }
 
 async function saveBoardsMeta(){
@@ -1451,20 +1615,120 @@ async function saveBoardsMeta(){
   }catch(e){console.warn('Boards meta save failed',e);}
 }
 
+function normalizeSections(raw){
+  if(!raw)return[];
+  const arr=Array.isArray(raw)?raw:Object.values(raw);
+  return arr.filter(Boolean).map(sec=>({
+    id:sec.id,
+    name:sec.name,
+    items:normalizeChildren(sec.items),
+  }));
+}
+
+async function readBoardPayload(boardId){
+  try{
+    const r=await store.get('board:'+boardId);
+    if(!r||!r.value)return null;
+    const val=typeof r.value==='string'?r.value:JSON.stringify(r.value);
+    return JSON.parse(val);
+  }catch(e){return null;}
+}
+
+function looksLikeSections(arr){
+  return Array.isArray(arr)&&arr.length&&arr[0]&&(arr[0].items!==undefined||arr[0].name);
+}
+
+async function migrateCombinedBoards(){
+  const next=[];
+  let changed=false;
+  let preferredActive=activeSprint;
+  const existingIds=new Set(sprints.map(s=>s.id));
+
+  for(const sp of sprints){
+    if(isProject(sp.project)){
+      next.push(sp);
+      continue;
+    }
+
+    let state=await readBoardPayload(sp.id);
+    if(!state&&sprintTasks[sp.id]){
+      const mem=sprintTasks[sp.id];
+      const sb=mem.smartbot;
+      const zc=mem.zenchat;
+      state={};
+      if(sb)state.smartbot=looksLikeSections(sb)?sb:tasksToSections(sb);
+      if(zc)state.zenchat=looksLikeSections(zc)?zc:tasksToSections(zc);
+    }
+
+    const hasSb=!!(state&&state.smartbot);
+    const hasZc=!!(state&&state.zenchat);
+
+    if(hasSb&&hasZc){
+      const sbId=sp.id.endsWith('-smartbot')?sp.id:(sp.id+'-smartbot');
+      const zcId=sp.id.endsWith('-zenchat')?sp.id:(sp.id+'-zenchat');
+      const baseName=(sp.name||'Sprint').replace(/\s*[—\-]\s*SmartBot\s*&\s*ZenChat/i,'').trim()||'Sprint 1';
+      if(!existingIds.has(sbId)&&!next.some(s=>s.id===sbId)){
+        next.push({...sp,id:sbId,project:'smartbot',name:baseName});
+        sprintTasks[sbId]={smartbot:looksLikeSections(state.smartbot)?[]:[]};
+        try{
+          await store.set('board:'+sbId,JSON.stringify({smartbot:normalizeSections(state.smartbot)}));
+        }catch(e){}
+      }
+      if(!existingIds.has(zcId)&&!next.some(s=>s.id===zcId)){
+        next.push({...sp,id:zcId,project:'zenchat',name:baseName});
+        try{
+          await store.set('board:'+zcId,JSON.stringify({zenchat:normalizeSections(state.zenchat)}));
+        }catch(e){}
+      }
+      if(preferredActive===sp.id)preferredActive=sbId;
+      try{await store.set('board:'+sp.id,null);}catch(e){}
+      delete sprintTasks[sp.id];
+      changed=true;
+    }else if(hasSb){
+      next.push({...sp,project:'smartbot'});
+      if(state.zenchat){
+        try{await store.set('board:'+sp.id,JSON.stringify({smartbot:normalizeSections(state.smartbot)}));}catch(e){}
+      }
+      changed=true;
+    }else if(hasZc){
+      next.push({...sp,project:'zenchat'});
+      if(state.smartbot){
+        try{await store.set('board:'+sp.id,JSON.stringify({zenchat:normalizeSections(state.zenchat)}));}catch(e){}
+      }
+      changed=true;
+    }else{
+      next.push({...sp,project:'smartbot'});
+      changed=true;
+    }
+  }
+
+  if(!changed)return;
+  sprints=next;
+  if(!sprints.some(s=>s.id===preferredActive)){
+    preferredActive=sprints.find(s=>s.project==='smartbot')?.id||sprints[0]?.id;
+  }
+  activeSprint=preferredActive;
+  activeProject=boardProject(sprints.find(s=>s.id===activeSprint));
+  if(canEdit())await saveBoardsMeta();
+}
+
 async function loadBoardsMeta(){
   try{
     const r=await store.get('boards');
-    if(!r||!r.value)return;
+    if(!r||!r.value){
+      await migrateCombinedBoards();
+      return;
+    }
     let data=r.value;
     if(typeof data==='string'){
       data=JSON.parse(data);
-      // Handle accidental double-encoding from REST writes
       if(typeof data==='string')data=JSON.parse(data);
     }
     if(Array.isArray(data.boards)&&data.boards.length){
       sprints=data.boards.map(b=>({
         id:b.id,
         kind:b.kind||'sprint',
+        project:isProject(b.project)?b.project:null,
         name:b.name||'Untitled',
         start:b.start||'',
         end:b.end||'',
@@ -1473,6 +1737,9 @@ async function loadBoardsMeta(){
     }
     if(data.active&&sprints.some(s=>s.id===data.active))activeSprint=data.active;
   }catch(e){console.warn('Boards meta load failed',e);}
+  await migrateCombinedBoards();
+  const sp=sprints.find(s=>s.id===activeSprint);
+  if(sp)activeProject=boardProject(sp);
 }
 
 /* ── New board menu + modal ── */
@@ -1506,6 +1773,8 @@ function openBoardModal(kind){
   const goal=document.getElementById('sp-goal');
   const saveBtn=document.getElementById('sprint-save');
   const nameInput=document.getElementById('sp-name');
+  const projectSel=document.getElementById('sp-project');
+  if(projectSel)projectSel.value=isProject(activeProject)?activeProject:'smartbot';
 
   if(kind==='sprint'){
     title.textContent='New Sprint';
@@ -1556,7 +1825,8 @@ sprintModal.addEventListener('click',e=>{if(e.target===sprintModal)sprintModal.c
 document.getElementById('sprint-save').addEventListener('click',async()=>{
   const kind=document.getElementById('sp-kind').value||'sprint';
   const name=document.getElementById('sp-name').value.trim();
-  if(!name)return;
+  const project=document.getElementById('sp-project')?.value||'smartbot';
+  if(!name||!isProject(project))return;
   let start='',end='';
   if(kind==='sprint'){
     start=document.getElementById('sp-start').value;
@@ -1565,19 +1835,17 @@ document.getElementById('sprint-save').addEventListener('click',async()=>{
   }
   const id=kind+'-'+Date.now();
   sprints.push({
-    id,kind,name,start,end,
+    id,kind,project,name,start,end,
     goal:document.getElementById('sp-goal').value.trim(),
   });
-  sprintTasks[id]={smartbot:[],zenchat:[]};
+  sprintTasks[id]={[project]:[]};
   activeSprint=id;
+  activeProject=project;
   await saveBoardsMeta();
-  // Seed empty board state so live sync has a key
-  await store.set('board:'+id,JSON.stringify({
-    smartbot:[{id:'customer',name:'Customer Requests',items:[]},{id:'internal',name:'Internal',items:[]}],
-    zenchat:[{id:'customer',name:'Customer Requests',items:[]},{id:'internal',name:'Internal',items:[]}],
-  }));
-  renderSprintList();renderBoard();updateTopbar();sprintModal.classList.remove('open');
+  await store.set('board:'+id,JSON.stringify(emptyBoardState(project)));
+  renderProjectNav();renderBoard();updateTopbar();sprintModal.classList.remove('open');
   showPage('board');
+  populateDeveloperFilter();
   subscribeBoard();
 });
 
@@ -1608,7 +1876,7 @@ function updateMoveBar(){
       const o=document.createElement('option');
       o.value=s.id;
       const k=boardKind(s);
-      o.textContent=(BOARD_KIND_META[k]?.chip||'')+' · '+s.name;
+      o.textContent=(BOARD_KIND_META[k]?.chip||'')+' · '+projectLabel(boardProject(s))+' · '+s.name;
       sel.appendChild(o);
     });
   } else {
@@ -1631,22 +1899,20 @@ document.getElementById('move-confirm-btn').addEventListener('click',async()=>{
   const targetId=document.getElementById('move-target-select').value;
   if(!targetId)return;
 
-  // Prefer top-level selections (skip nested cards whose parent is also selected)
   const selected=[...document.querySelectorAll('.item-card.selected-for-move')];
   const roots=selected.filter(card=>!selected.some(p=>p!==card&&p.contains(card)));
-  const moved={smartbot:[],zenchat:[]};
+  const moved=[];
   roots.forEach(card=>{
-    const areaEl=card.closest('#smartbot-items, #zenchat-items');
-    if(!areaEl)return;
-    const area=areaEl.id.replace('-items','');
+    if(!card.closest('#board-items'))return;
     const data=serializeCard(card);
-    if(data)moved[area].push(data);
+    if(data)moved.push(data);
     card.remove();
   });
 
   await saveBoardState();
 
-  // Append into target board state
+  const targetSp=sprints.find(s=>s.id===targetId);
+  const targetProject=boardProject(targetSp);
   let targetState=null;
   try{
     const r=await store.get('board:'+targetId);
@@ -1655,24 +1921,19 @@ document.getElementById('move-confirm-btn').addEventListener('click',async()=>{
       targetState=JSON.parse(val);
     }
   }catch(e){}
-  if(!targetState||!targetState.smartbot){
-    targetState={
-      smartbot:[{id:'customer',name:'Customer Requests',items:[]},{id:'internal',name:'Internal',items:[]}],
-      zenchat:[{id:'customer',name:'Customer Requests',items:[]},{id:'internal',name:'Internal',items:[]}],
-    };
+  if(!targetState||!Array.isArray(targetState[targetProject])){
+    targetState=emptyBoardState(targetProject);
   }
-  ['smartbot','zenchat'].forEach(area=>{
-    if(!moved[area].length)return;
-    if(!Array.isArray(targetState[area]))targetState[area]=[];
-    let sec=targetState[area].find(s=>s.id==='internal')||targetState[area][0];
+  if(moved.length){
+    let sec=targetState[targetProject].find(s=>s.id==='internal')||targetState[targetProject][0];
     if(!sec){
       sec={id:'incoming',name:'Incoming',items:[]};
-      targetState[area].push(sec);
+      targetState[targetProject].push(sec);
     }
     if(!Array.isArray(sec.items))sec.items=[];
-    sec.items.push(...moved[area]);
-  });
-  await store.set('board:'+targetId,JSON.stringify(targetState));
+    sec.items.push(...moved);
+  }
+  await store.set('board:'+targetId,JSON.stringify({[targetProject]:normalizeSections(targetState[targetProject])}));
 
   updateStats();
   moveBar.classList.remove('show');
@@ -1734,17 +1995,14 @@ function buildStatusWidget(currentId){
 
 /* ── Stats ── */
 function updateStats(){
-  ['smartbot','zenchat'].forEach(area=>{
-    const pfx=area==='smartbot'?'sb':'zc';
-    const col=document.getElementById(area+'-items');
-    if(!col)return;
-    const secs=col.querySelectorAll('.board-section').length;
-    const cards=col.querySelectorAll('.sort-list > .item-card:not(.status-filtered-out)').length;
-    const custPill=document.getElementById(pfx+'-customer-pill');
-    const intlPill=document.getElementById(pfx+'-internal-pill');
-    if(custPill)custPill.textContent=secs+' section'+(secs!==1?'s':'');
-    if(intlPill)intlPill.textContent=cards+' task'+(cards!==1?'s':'');
-  });
+  const col=document.getElementById('board-items');
+  if(!col)return;
+  const secs=col.querySelectorAll('.board-section').length;
+  const cards=col.querySelectorAll('.sort-list > .item-card:not(.status-filtered-out)').length;
+  const secPill=document.getElementById('board-sections-pill');
+  const taskPill=document.getElementById('board-tasks-pill');
+  if(secPill)secPill.textContent=secs+' section'+(secs!==1?'s':'');
+  if(taskPill)taskPill.textContent=cards+' task'+(cards!==1?'s':'');
   applyStatusFilter();
 }
 
@@ -1852,13 +2110,11 @@ function populateStatusFilter(){
 }
 
 function refreshFilteredCounts(){
-  ['smartbot','zenchat'].forEach(area=>{
-    const pfx=area==='smartbot'?'sb':'zc';
-    const col=document.getElementById(area+'-items');
-    if(!col)return;
-    const cards=col.querySelectorAll('.sort-list > .item-card:not(.filtered-out):not(.status-filtered-out)').length;
-    document.getElementById(pfx+'-internal-pill').textContent=cards+' task'+(cards!==1?'s':'');
-  });
+  const col=document.getElementById('board-items');
+  if(!col)return;
+  const cards=col.querySelectorAll('.sort-list > .item-card:not(.filtered-out):not(.status-filtered-out)').length;
+  const taskPill=document.getElementById('board-tasks-pill');
+  if(taskPill)taskPill.textContent=cards+' task'+(cards!==1?'s':'');
 }
 
 function developerFilterActive(){
@@ -1873,7 +2129,7 @@ function cardMatchesDeveloperFilter(dev){
 }
 
 function applyBoardFilters(){
-  document.querySelectorAll('#smartbot-items .item-card, #zenchat-items .item-card').forEach(card=>{
+  document.querySelectorAll('#board-items .item-card').forEach(card=>{
     const hdr=card.querySelector(':scope > .item-header')||card.querySelector('.item-header');
     const sw=hdr?hdr.querySelector('.card-status-wrap'):null;
     const st=sw?sw.dataset.st||'none':'none';
@@ -1909,13 +2165,14 @@ function syncDeveloperFilterControls(){
 function populateDeveloperFilter(){
   const sel=document.getElementById('developer-filter');
   if(!sel)return;
-  if(developerFilter!=='any'&&developerFilter!=='__none__'&&!developerNames.includes(developerFilter)){
+  const names=currentDevelopers();
+  if(developerFilter!=='any'&&developerFilter!=='__none__'&&!names.includes(developerFilter)){
     developerFilter='any';
   }
   const cur=developerFilter||'any';
   sel.innerHTML='';
   const opts=[{value:'any',label:'any'},{value:'__none__',label:'Unassigned'}]
-    .concat(developerNames.map(n=>({value:n,label:n})));
+    .concat(names.map(n=>({value:n,label:n})));
   opts.forEach(o=>{
     const opt=document.createElement('option');
     opt.value=o.value;
@@ -1935,21 +2192,21 @@ function clearDeveloperFilter(){
 
 function populateDeveloperSelect(sel,current){
   if(!sel)return;
+  const names=currentDevelopers();
   const cur=current||'';
   sel.innerHTML='';
   const blank=document.createElement('option');
   blank.value='';
-  blank.textContent=developerNames.length?'— Unassigned —':'— Add developers in Settings —';
+  blank.textContent=names.length?'— Unassigned —':'— Add developers in Settings —';
   sel.appendChild(blank);
-  developerNames.forEach(n=>{
+  names.forEach(n=>{
     const o=document.createElement('option');
     o.value=n;
     o.textContent=n;
     if(n===cur)o.selected=true;
     sel.appendChild(o);
   });
-  // Keep orphan assignment visible if name was removed from settings
-  if(cur&&!developerNames.includes(cur)){
+  if(cur&&!names.includes(cur)){
     const o=document.createElement('option');
     o.value=cur;
     o.textContent=cur+' (removed)';
@@ -2181,7 +2438,7 @@ function populateAddSectionSelect(area,preferredSectionId){
   const sel=document.getElementById('add-section');
   if(!sel)return;
   sel.innerHTML='';
-  const col=document.getElementById(area+'-items');
+  const col=document.getElementById('board-items');
   const sections=col?Array.from(col.querySelectorAll(':scope > .board-section')):[];
   if(!sections.length){
     const opt=document.createElement('option');
@@ -2204,12 +2461,12 @@ function populateAddSectionSelect(area,preferredSectionId){
 
 function openAddModal(area,sectionId){
   if(!canEdit())return;
-  addTargetArea=area;
+  addTargetArea=area||activeBoardProject();
   addTargetSectionId=sectionId||null;
-  const areaLabel=area==='smartbot'?'SmartBot':'ZenChat';
+  const areaLabel=projectLabel(addTargetArea);
   let secLabel='';
   if(sectionId){
-    const col=document.getElementById(area+'-items');
+    const col=document.getElementById('board-items');
     const sec=col&&Array.from(col.querySelectorAll(':scope > .board-section')).find(s=>s.dataset.sectionId===sectionId);
     const nameEl=sec&&sec.querySelector('.board-section-name');
     if(nameEl)secLabel=' · '+(nameEl.value||nameEl.textContent||'');
@@ -2218,7 +2475,7 @@ function openAddModal(area,sectionId){
   ['add-title','add-customer','add-notes','add-jira-id','add-jira-link'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('add-type').value='new';
   document.getElementById('add-source').value='internal';
-  populateAddSectionSelect(area,sectionId||null);
+  populateAddSectionSelect(addTargetArea,sectionId||null);
   populateDeveloperSelect(document.getElementById('add-developer'),'');
   addModal.classList.add('open');
   setTimeout(()=>document.getElementById('add-title').focus(),50);
@@ -2277,7 +2534,7 @@ document.getElementById('add-save').addEventListener('click',()=>{
     developer:document.getElementById('add-developer').value.trim()||'',
     notes:document.getElementById('add-notes').value.trim(),jira:false,
     jiraKey,jiraLink};
-  const col=document.getElementById(addTargetArea+'-items');
+  const col=document.getElementById('board-items');
   let list=null;
   if(sectionId&&col){
     const sec=Array.from(col.querySelectorAll(':scope > .board-section')).find(s=>s.dataset.sectionId===sectionId);
@@ -2540,39 +2797,27 @@ function normalizeChildren(items){
 }
 
 function applyBoardState(state){
-  if(!state||!state.smartbot)return;
-  // Accept array or Firebase object-map for sections
-  const smartbot=Array.isArray(state.smartbot)?state.smartbot:Object.values(state.smartbot);
-  const zenchat=Array.isArray(state.zenchat)?state.zenchat:Object.values(state.zenchat||{});
-  if(!Array.isArray(smartbot))return;
+  const project=activeBoardProject();
+  if(!state||!state[project])return;
+  const sections=normalizeSections(state[project]);
+  if(!Array.isArray(sections))return;
 
-  const normalized={
-    smartbot:smartbot.map(sec=>({
-      id:sec.id,name:sec.name,
-      items:normalizeChildren(sec.items),
-    })),
-    zenchat:zenchat.map(sec=>({
-      id:sec.id,name:sec.name,
-      items:normalizeChildren(sec.items),
-    })),
-  };
+  const normalized={[project]:sections};
 
   let incoming;
   try{incoming=JSON.stringify(normalized);}catch(e){return;}
-  // Skip echo of our own write — rebuilding would wipe in-progress ticket URL edits
   if(incoming===_lastSavedJson)return;
   _lastSavedJson=incoming;
   _applyingRemote=true;
 
-  ['smartbot','zenchat'].forEach(area=>{
-    const container=document.getElementById(area+'-items');
-    container.innerHTML='';
-    (normalized[area]||[]).forEach(sec=>{
-      const secEl=buildSection(area,sec.id,sec.name);
-      const list=secEl.querySelector(':scope > .sort-list');
-      (sec.items||[]).forEach(item=>list.appendChild(buildCardFromSaved(item)));
-      container.appendChild(secEl);makeSortable(list);
-    });
+  const container=document.getElementById('board-items');
+  if(!container){_applyingRemote=false;return;}
+  container.innerHTML='';
+  sections.forEach(sec=>{
+    const secEl=buildSection(project,sec.id,sec.name);
+    const list=secEl.querySelector(':scope > .sort-list');
+    (sec.items||[]).forEach(item=>list.appendChild(buildCardFromSaved(item)));
+    container.appendChild(secEl);makeSortable(list);
   });
   updateStats();
   _applyingRemote=false;
@@ -2626,24 +2871,22 @@ function serializeList(listEl){
 async function saveBoardState(){
   if(!canEdit())return;
   if(_applyingRemote)return;
-  const state={};
-  ['smartbot','zenchat'].forEach(area=>{
-    state[area]=[];
-    const container=document.getElementById(area+'-items');
-    container.querySelectorAll(':scope > .board-section').forEach(sec=>{
-      const nameEl=sec.querySelector('.board-section-name');
-      const list=sec.querySelector(':scope > .sort-list');
-      state[area].push({
-        id:sec.dataset.sectionId,
-        name:nameEl?nameEl.value||nameEl.textContent:'',
-        items:list?serializeList(list):[],
-      });
+  const project=activeBoardProject();
+  const state={[project]:[]};
+  const container=document.getElementById('board-items');
+  if(!container)return;
+  container.querySelectorAll(':scope > .board-section').forEach(sec=>{
+    const nameEl=sec.querySelector('.board-section-name');
+    const list=sec.querySelector(':scope > .sort-list');
+    state[project].push({
+      id:sec.dataset.sectionId,
+      name:nameEl?nameEl.value||nameEl.textContent:'',
+      items:list?serializeList(list):[],
     });
   });
   try{
     const json=JSON.stringify(state);
     _lastSavedJson=json;
-    // Save to Firebase (key uses _ instead of :)
     await store.set('board:'+activeSprint, json);
   }catch(e){console.warn('Board save failed',e);}
 }
@@ -2691,7 +2934,8 @@ async function loadBoardState(){
     if(!r||!r.value)return false;
     const val=typeof r.value==='string'?r.value:JSON.stringify(r.value);
     const state=JSON.parse(val);
-    if(!state.smartbot)return false;
+    const project=activeBoardProject();
+    if(!state[project])return false;
     applyBoardState(state);
     return true;
   }catch(e){console.warn('Board load failed',e);return false;}
@@ -2699,22 +2943,21 @@ async function loadBoardState(){
 
 /* ── Render board ── */
 async function renderBoard(){
+  const project=activeBoardProject();
+  activeProject=project;
+  updateTopbar();
   const restored=await loadBoardState();
   if(!restored){
-    ['smartbot','zenchat'].forEach(area=>{
-      const container=document.getElementById(area+'-items');container.innerHTML='';
-      const tasks=sprintTasks[activeSprint]?.[area]||[];
-      // default sections
-      const defaultSections=[
-        {id:'customer',name:'Customer Requests',items:tasks.filter(i=>i.source==='customer')},
-        {id:'internal',name:'Internal',items:tasks.filter(i=>i.source==='internal')},
-      ];
-      defaultSections.forEach(sec=>{
-        const secEl=buildSection(area,sec.id,sec.name);
-        const list=secEl.querySelector('.sort-list');
-        sec.items.forEach(item=>list.appendChild(buildCard(item)));
-        container.appendChild(secEl);makeSortable(list);
-      });
+    const container=document.getElementById('board-items');
+    if(!container)return;
+    container.innerHTML='';
+    const tasks=sprintTasks[activeSprint]?.[project]||[];
+    const defaultSections=looksLikeSections(tasks)?tasks:tasksToSections(tasks);
+    defaultSections.forEach(sec=>{
+      const secEl=buildSection(project,sec.id,sec.name);
+      const list=secEl.querySelector('.sort-list');
+      (sec.items||[]).forEach(item=>list.appendChild(buildCard(item)));
+      container.appendChild(secEl);makeSortable(list);
     });
     updateStats();
   }
@@ -2787,12 +3030,13 @@ function buildSection(area, id, name){
 
 function addSection(area){
   if(!canEdit())return;
-  const container=document.getElementById(area+'-items');
+  const project=area||activeBoardProject();
+  const container=document.getElementById('board-items');
+  if(!container)return;
   const id='sec-'+(++sectionCounter);
-  const sec=buildSection(area,id,'New Section');
+  const sec=buildSection(project,id,'New Section');
   container.appendChild(sec);
   makeSortable(sec.querySelector('.sort-list'));
-  // Focus the name for immediate rename
   const nameEl=sec.querySelector('.board-section-name');
   nameEl.select();nameEl.focus();
   saveBoardState();
@@ -2918,71 +3162,132 @@ function addStatusOption(){
   saveStatusOptions();
 }
 
+function uniqNames(list){
+  return (list||[]).map(n=>String(n||'').trim()).filter(Boolean)
+    .filter((n,i,arr)=>arr.findIndex(x=>x.toLowerCase()===n.toLowerCase())===i);
+}
+
 async function saveDeveloperNames(){
   if(!canEdit())return;
   try{
-    await store.set('settings:developers',JSON.stringify(developerNames));
+    await store.set('settings:developers',JSON.stringify(developerNamesByProject));
   }catch(e){console.warn('Developer names save failed',e);}
 }
 
 async function loadDeveloperNames(){
   try{
     const r=await store.get('settings:developers');
-    if(!r||!r.value)return;
+    if(!r||!r.value){
+      developerNamesByProject={
+        smartbot:DEFAULT_DEVELOPERS.smartbot.slice(),
+        zenchat:DEFAULT_DEVELOPERS.zenchat.slice(),
+      };
+      return;
+    }
     let data=r.value;
     if(typeof data==='string'){
       data=JSON.parse(data);
       if(typeof data==='string')data=JSON.parse(data);
     }
-    if(!Array.isArray(data))return;
-    developerNames=data.map(n=>String(n||'').trim()).filter(Boolean)
-      .filter((n,i,arr)=>arr.findIndex(x=>x.toLowerCase()===n.toLowerCase())===i);
+    if(Array.isArray(data)){
+      const names=uniqNames(data);
+      if(names.length){
+        developerNamesByProject={smartbot:names.slice(),zenchat:names.slice()};
+      }else{
+        developerNamesByProject={
+          smartbot:DEFAULT_DEVELOPERS.smartbot.slice(),
+          zenchat:DEFAULT_DEVELOPERS.zenchat.slice(),
+        };
+      }
+      return;
+    }
+    if(data&&typeof data==='object'){
+      const sb=uniqNames(data.smartbot);
+      const zc=uniqNames(data.zenchat);
+      developerNamesByProject={
+        smartbot:sb.length?sb:DEFAULT_DEVELOPERS.smartbot.slice(),
+        zenchat:zc.length?zc:DEFAULT_DEVELOPERS.zenchat.slice(),
+      };
+      return;
+    }
   }catch(e){console.warn('Developer names load failed',e);}
+  developerNamesByProject={
+    smartbot:DEFAULT_DEVELOPERS.smartbot.slice(),
+    zenchat:DEFAULT_DEVELOPERS.zenchat.slice(),
+  };
+}
+
+function syncSettingsDevTabs(){
+  const project=isProject(settingsDevProject)?settingsDevProject:'smartbot';
+  settingsDevProject=project;
+  document.querySelectorAll('.settings-project-tab').forEach(tab=>{
+    tab.classList.toggle('active',tab.dataset.project===project);
+  });
+  document.querySelectorAll('.dev-project-block').forEach(block=>{
+    block.style.display=block.dataset.project===project?'':'none';
+  });
 }
 
 function renderDeveloperSettings(){
-  const list=document.getElementById('developer-options-list');
-  if(!list)return;
-  list.innerHTML='';
-  developerNames.forEach((name,i)=>{
-    const row=document.createElement('div');
-    row.className='status-option-row';
-    row.innerHTML=`<div class="status-option-label" style="flex:1">${escapeHtml(name)}</div><div><button class="stn-btn danger">Remove</button></div>`;
-    row.querySelector('.danger').addEventListener('click',()=>{
-      if(!canEdit())return;
-      developerNames.splice(i,1);
-      renderDeveloperSettings();
-      populateDeveloperFilter();
-      applyBoardFilters();
-      saveDeveloperNames();
+  syncSettingsDevTabs();
+  ['smartbot','zenchat'].forEach(project=>{
+    const list=document.getElementById('developer-options-list-'+project);
+    if(!list)return;
+    list.innerHTML='';
+    const names=developerNamesByProject[project]||[];
+    names.forEach((name,i)=>{
+      const row=document.createElement('div');
+      row.className='status-option-row';
+      row.innerHTML=`<div class="status-option-label" style="flex:1">${escapeHtml(name)}</div><div><button class="stn-btn danger">Remove</button></div>`;
+      row.querySelector('.danger').addEventListener('click',()=>{
+        if(!canEdit())return;
+        developerNamesByProject[project].splice(i,1);
+        renderDeveloperSettings();
+        populateDeveloperFilter();
+        applyBoardFilters();
+        saveDeveloperNames();
+      });
+      list.appendChild(row);
     });
-    list.appendChild(row);
+    if(!names.length){
+      list.innerHTML='<div style="font-size:11px;color:var(--text4);padding:4px 0">No developers yet — add names below.</div>';
+    }
   });
-  if(!developerNames.length){
-    list.innerHTML='<div style="font-size:11px;color:var(--text4);padding:4px 0">No developers yet — add names below.</div>';
-  }
   populateDeveloperFilter();
 }
 
-function addDeveloperOption(){
+function addDeveloperOption(project){
   if(!canEdit())return;
-  const input=document.getElementById('new-developer-input');
+  const p=isProject(project)?project:settingsDevProject;
+  const input=document.getElementById('new-developer-input-'+p);
   const name=(input?.value||'').trim();
   if(!name)return;
-  if(developerNames.some(n=>n.toLowerCase()===name.toLowerCase())){
+  if(!developerNamesByProject[p])developerNamesByProject[p]=[];
+  if(developerNamesByProject[p].some(n=>n.toLowerCase()===name.toLowerCase())){
     input.value='';
     return;
   }
-  developerNames.push(name);
-  developerNames.sort((a,b)=>a.localeCompare(b));
+  developerNamesByProject[p].push(name);
+  developerNamesByProject[p].sort((a,b)=>a.localeCompare(b));
   input.value='';
   renderDeveloperSettings();
   populateDeveloperFilter();
   saveDeveloperNames();
 }
 
-document.getElementById('new-developer-input')?.addEventListener('keydown',e=>{
-  if(e.key==='Enter'){e.preventDefault();addDeveloperOption();}
+document.querySelectorAll('.settings-project-tab').forEach(tab=>{
+  tab.addEventListener('click',()=>{
+    settingsDevProject=tab.dataset.project;
+    syncSettingsDevTabs();
+  });
+});
+document.querySelectorAll('[data-add-dev]').forEach(btn=>{
+  btn.addEventListener('click',()=>addDeveloperOption(btn.dataset.addDev));
+});
+['smartbot','zenchat'].forEach(project=>{
+  document.getElementById('new-developer-input-'+project)?.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){e.preventDefault();addDeveloperOption(project);}
+  });
 });
 document.getElementById('new-status-input')?.addEventListener('keydown',e=>{
   if(e.key==='Enter'){e.preventDefault();addStatusOption();}
@@ -3161,7 +3466,8 @@ function renderMyTasks(){
 
 function updateMyTasksBadge(){
   const pending=myTasks.filter(t=>!t.done).length;
-  document.getElementById('nav-mytasks-count').textContent=pending||'—';
+  const el=document.getElementById('nav-mytasks-count');
+  if(el)el.textContent=pending||'—';
 }
 
 /* ── Init ── */
@@ -3173,11 +3479,15 @@ function updateMyTasksBadge(){
   await loadBoardsMeta();
   await loadStatusOptions();
   await loadDeveloperNames();
-  // Ensure legacy sprint-1 has kind
-  sprints.forEach(s=>{if(!s.kind)s.kind='sprint';});
+  sprints.forEach(s=>{
+    if(!s.kind)s.kind='sprint';
+    if(!isProject(s.project))s.project='smartbot';
+  });
+  const activeSp=sprints.find(s=>s.id===activeSprint);
+  if(activeSp)activeProject=boardProject(activeSp);
   loadMyTasks();
   await renderBoard();
-  renderSprintList();
+  renderProjectNav();
   updateTopbar();
   renderStatusSettings();
   renderDeveloperSettings();
@@ -3187,7 +3497,10 @@ function updateMyTasksBadge(){
   renderMyTasks();
   updateMyTasksBadge();
   subscribeBoard();
-  if(canEdit())await saveBoardsMeta();
+  if(canEdit()){
+    await saveBoardsMeta();
+    await saveDeveloperNames();
+  }
   applyAccessMode();
 })();
 </script>
