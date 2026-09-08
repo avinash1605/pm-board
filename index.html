@@ -140,6 +140,84 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .roadmap-empty{max-width:520px;padding:48px 20px;text-align:center;color:var(--text3)}
 .roadmap-empty h2{font-size:16px;font-weight:700;color:var(--text1);margin-bottom:8px}
 .roadmap-empty p{font-size:12px;line-height:1.5}
+
+/* ── Roadmap board ── */
+.roadmap-wrap{max-width:1280px}
+.roadmap-header{
+  display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+  margin-bottom:18px;flex-wrap:wrap;
+}
+.roadmap-header h2{font-size:20px;font-weight:700;color:var(--text1);letter-spacing:-.02em}
+.roadmap-header-sub{font-size:12px;color:var(--text3);margin-top:3px}
+.roadmap-legend{display:flex;align-items:center;gap:14px;flex-wrap:wrap;padding-top:4px}
+.roadmap-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:var(--text2)}
+.roadmap-legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
+.roadmap-board{
+  display:grid;grid-template-columns:repeat(4,minmax(200px,1fr));gap:14px;align-items:start;
+}
+.roadmap-col{
+  background:var(--surface);border:1px solid var(--border);border-radius:12px;
+  box-shadow:var(--shadow-sm);overflow:hidden;display:flex;flex-direction:column;min-height:320px;
+}
+.roadmap-col-head{
+  padding:14px 14px 12px;color:#fff;position:relative;background:var(--rm-head);
+}
+.roadmap-col-head-row{display:flex;align-items:flex-start;justify-content:space-between;gap:8px}
+.roadmap-col-month{font-size:18px;font-weight:700;letter-spacing:-.02em;line-height:1.15}
+.roadmap-col-q{font-size:11px;font-weight:600;opacity:.85;margin-top:4px;letter-spacing:.04em}
+.roadmap-col-count{
+  min-width:22px;height:22px;padding:0 6px;border-radius:999px;background:rgba(255,255,255,.22);
+  font-size:11px;font-weight:700;display:inline-flex;align-items:center;justify-content:center;
+  font-family:'JetBrains Mono',monospace;
+}
+.roadmap-col-body{padding:10px;display:flex;flex-direction:column;gap:8px;flex:1}
+.roadmap-list{display:flex;flex-direction:column;gap:8px;min-height:24px;flex:1}
+.roadmap-card{
+  border-radius:8px;padding:10px 11px;border:1px solid transparent;
+  display:flex;align-items:flex-start;gap:8px;cursor:pointer;transition:box-shadow .12s,border-color .12s;
+  position:relative;
+}
+.roadmap-card:hover{box-shadow:var(--shadow-sm);border-color:rgba(0,0,0,.06)}
+.roadmap-card-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.roadmap-card-main{flex:1;min-width:0}
+.roadmap-card-title{font-size:12px;font-weight:600;color:var(--text1);line-height:1.35}
+.roadmap-card-desc{font-size:11px;color:var(--text3);line-height:1.4;margin-top:3px}
+.roadmap-card-live{
+  flex-shrink:0;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
+  color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;border-radius:4px;padding:2px 5px;margin-top:2px;
+}
+.roadmap-card-actions{display:none;position:absolute;top:6px;right:6px;gap:2px}
+.roadmap-card:hover .roadmap-card-actions{display:flex}
+.roadmap-card-btn{
+  width:22px;height:22px;border:none;border-radius:4px;background:rgba(255,255,255,.85);
+  color:var(--text3);cursor:pointer;font-size:11px;line-height:1;
+}
+.roadmap-card-btn:hover{background:#fff;color:var(--text1)}
+.roadmap-card-btn.danger:hover{color:var(--red)}
+.roadmap-add-btn{
+  width:100%;margin-top:2px;padding:8px;border:1px dashed var(--border2);border-radius:8px;
+  background:transparent;color:var(--text3);font-size:11px;font-weight:600;cursor:pointer;
+  font-family:'Inter',sans-serif;transition:background .12s,color .12s,border-color .12s;
+}
+.roadmap-add-btn:hover{background:var(--surface2);color:var(--accent);border-color:var(--accent-md)}
+.roadmap-card.cat-feature{background:#eff6ff}
+.roadmap-card.cat-platform{background:#f5f3ff}
+.roadmap-card.cat-reporting{background:#ecfdf5}
+.roadmap-card.cat-feature .roadmap-card-dot{background:#3b82f6}
+.roadmap-card.cat-platform .roadmap-card-dot{background:#8b5cf6}
+.roadmap-card.cat-reporting .roadmap-card-dot{background:#10b981}
+body.view-only .roadmap-add-btn,
+body.view-only .roadmap-card-actions{display:none!important}
+@media(max-width:1100px){
+  .roadmap-board{grid-template-columns:repeat(2,minmax(200px,1fr))}
+}
+@media(max-width:640px){
+  .roadmap-board{
+    display:flex;overflow-x:auto;gap:12px;padding-bottom:8px;
+    scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;
+  }
+  .roadmap-col{min-width:260px;max-width:280px;flex:0 0 auto;scroll-snap-align:start}
+}
 .settings-project-tabs{display:flex;gap:6px;margin-bottom:10px}
 .settings-project-tab{
   font-size:11px;font-weight:600;padding:5px 10px;border-radius:5px;border:1px solid var(--border2);
@@ -762,6 +840,45 @@ body.view-only .mytask-title{pointer-events:none}
   </div>
 </div>
 
+<!-- Roadmap item modal -->
+<div class="modal-overlay" id="roadmap-modal">
+  <div class="modal">
+    <div class="modal-header">
+      <div>
+        <div class="modal-title" id="rm-modal-title">Add roadmap item</div>
+        <div class="modal-sub" id="rm-modal-sub">September</div>
+      </div>
+      <button class="modal-close" id="rm-close">✕</button>
+    </div>
+    <div class="modal-body">
+      <input type="hidden" id="rm-month" value="sep">
+      <input type="hidden" id="rm-edit-id" value="">
+      <div class="field-group"><div class="field-label">Title</div><input class="field-input" id="rm-title" type="text" placeholder="e.g. Cross-centre appointments"></div>
+      <div class="field-group"><div class="field-label">Description</div><textarea class="field-textarea" id="rm-desc" placeholder="Short note…" style="min-height:64px"></textarea></div>
+      <div class="field-row">
+        <div class="field-group"><div class="field-label">Category</div>
+          <select class="field-select" id="rm-category">
+            <option value="feature">Feature</option>
+            <option value="platform">Platform</option>
+            <option value="reporting">Reporting</option>
+          </select>
+        </div>
+        <div class="field-group"><div class="field-label">Status</div>
+          <select class="field-select" id="rm-live">
+            <option value="0">Planned</option>
+            <option value="1">LIVE</option>
+          </select>
+        </div>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" id="rm-cancel">Cancel</button>
+      <button class="btn-danger" id="rm-delete" style="display:none;margin-right:auto">Delete</button>
+      <button class="btn-primary" id="rm-save">Save</button>
+    </div>
+  </div>
+</div>
+
 <!-- Delete board modal (two-step confirm) -->
 <div class="modal-overlay" id="delete-board-modal">
   <div class="modal" style="width:420px">
@@ -1011,9 +1128,19 @@ body.view-only .mytask-title{pointer-events:none}
     </div>
 
     <div class="page" id="page-roadmap">
-      <div class="roadmap-empty">
-        <h2 id="roadmap-title">SmartBot Roadmap</h2>
-        <p>Roadmap view is coming soon. Use sprint boards for day-to-day planning.</p>
+      <div class="roadmap-wrap">
+        <div class="roadmap-header">
+          <div>
+            <h2 id="roadmap-title">Product Roadmap</h2>
+            <div class="roadmap-header-sub" id="roadmap-subtitle">SmartBot</div>
+          </div>
+          <div class="roadmap-legend">
+            <span class="roadmap-legend-item"><span class="roadmap-legend-dot" style="background:#3b82f6"></span>Feature</span>
+            <span class="roadmap-legend-item"><span class="roadmap-legend-dot" style="background:#8b5cf6"></span>Platform</span>
+            <span class="roadmap-legend-item"><span class="roadmap-legend-dot" style="background:#10b981"></span>Reporting</span>
+          </div>
+        </div>
+        <div class="roadmap-board" id="roadmap-board"></div>
       </div>
     </div>
 
@@ -1430,7 +1557,15 @@ function showPage(id,btn,project){
   }
   if(id==='roadmap'){
     const title=document.getElementById('roadmap-title');
-    if(title)title.textContent=projectLabel(activeProject)+' Roadmap';
+    const sub=document.getElementById('roadmap-subtitle');
+    if(title)title.textContent='Product Roadmap';
+    if(sub)sub.textContent=projectLabel(activeProject);
+    const chip=document.getElementById('topbar-chip');
+    const projectChip=document.getElementById('project-chip');
+    document.getElementById('topbar-title').textContent=projectLabel(activeProject)+' Roadmap';
+    if(chip)chip.textContent='Roadmap';
+    if(projectChip)projectChip.textContent=projectLabel(activeProject);
+    renderRoadmap();
   }
   if(id==='settings'){
     settingsDevProject=activeProject;
@@ -3299,6 +3434,251 @@ document.addEventListener('click',()=>{
   document.querySelectorAll('.jira-link-pop.open').forEach(p=>p.classList.remove('open'));
 });
 
+/* ── Roadmap ── */
+const ROADMAP_MONTHS=[
+  {id:'sep',label:'September',quarter:'Q3',head:'#0f766e'},
+  {id:'oct',label:'October',quarter:'Q4',head:'#1e3a5f'},
+  {id:'nov',label:'November',quarter:'Q4',head:'#166534'},
+  {id:'dec',label:'December',quarter:'Q4',head:'#14532d'},
+];
+const ROADMAP_CATS={
+  feature:{label:'Feature',cls:'cat-feature'},
+  platform:{label:'Platform',cls:'cat-platform'},
+  reporting:{label:'Reporting',cls:'cat-reporting'},
+};
+function emptyRoadmapMonths(){
+  const o={};
+  ROADMAP_MONTHS.forEach(m=>{o[m.id]=[];});
+  return o;
+}
+let roadmapByProject={
+  smartbot:emptyRoadmapMonths(),
+  zenchat:emptyRoadmapMonths(),
+};
+let roadmapItemCounter=1;
+const roadmapModal=document.getElementById('roadmap-modal');
+
+function currentRoadmap(){
+  const p=isProject(activeProject)?activeProject:'smartbot';
+  if(!roadmapByProject[p])roadmapByProject[p]=emptyRoadmapMonths();
+  ROADMAP_MONTHS.forEach(m=>{
+    if(!Array.isArray(roadmapByProject[p][m.id]))roadmapByProject[p][m.id]=[];
+  });
+  return roadmapByProject[p];
+}
+
+function normalizeRoadmapPayload(data){
+  const out=emptyRoadmapMonths();
+  if(!data||typeof data!=='object')return out;
+  ROADMAP_MONTHS.forEach(m=>{
+    const raw=data[m.id];
+    const arr=Array.isArray(raw)?raw:raw&&typeof raw==='object'?Object.values(raw):[];
+    out[m.id]=arr.filter(Boolean).map(item=>({
+      id:String(item.id||('RM-'+(roadmapItemCounter++))),
+      title:String(item.title||'').trim()||'Untitled',
+      desc:String(item.desc||item.description||'').trim(),
+      category:ROADMAP_CATS[item.category]?item.category:'feature',
+      live:!!item.live,
+    }));
+  });
+  return out;
+}
+
+async function saveRoadmap(){
+  if(!canEdit())return;
+  const p=isProject(activeProject)?activeProject:'smartbot';
+  try{
+    await store.set('roadmap:'+p,JSON.stringify(currentRoadmap()));
+  }catch(e){console.warn('Roadmap save failed',e);}
+}
+
+async function loadRoadmapForProject(project){
+  const p=isProject(project)?project:'smartbot';
+  try{
+    const r=await store.get('roadmap:'+p);
+    if(!r||!r.value){
+      roadmapByProject[p]=emptyRoadmapMonths();
+      return;
+    }
+    let data=r.value;
+    if(typeof data==='string'){
+      data=JSON.parse(data);
+      if(typeof data==='string')data=JSON.parse(data);
+    }
+    roadmapByProject[p]=normalizeRoadmapPayload(data);
+  }catch(e){
+    console.warn('Roadmap load failed',e);
+    roadmapByProject[p]=emptyRoadmapMonths();
+  }
+}
+
+async function loadAllRoadmaps(){
+  await loadRoadmapForProject('smartbot');
+  await loadRoadmapForProject('zenchat');
+}
+
+function findRoadmapItem(id){
+  const data=currentRoadmap();
+  for(const m of ROADMAP_MONTHS){
+    const hit=(data[m.id]||[]).find(t=>t.id===id);
+    if(hit)return hit;
+  }
+  return null;
+}
+
+function openRoadmapModal(monthId,item){
+  if(!canEdit()&&!item)return;
+  const month=ROADMAP_MONTHS.find(m=>m.id===monthId)||ROADMAP_MONTHS[0];
+  document.getElementById('rm-month').value=month.id;
+  document.getElementById('rm-edit-id').value=item?.id||'';
+  document.getElementById('rm-modal-title').textContent=item?'Edit roadmap item':'Add roadmap item';
+  document.getElementById('rm-modal-sub').textContent=month.label+' · '+month.quarter;
+  document.getElementById('rm-title').value=item?.title||'';
+  document.getElementById('rm-desc').value=item?.desc||'';
+  document.getElementById('rm-category').value=item?.category||'feature';
+  document.getElementById('rm-live').value=item?.live?'1':'0';
+  const del=document.getElementById('rm-delete');
+  del.style.display=item&&canEdit()?'':'none';
+  document.getElementById('rm-save').style.display=canEdit()?'':'none';
+  ['rm-title','rm-desc','rm-category','rm-live'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el)el.disabled=!canEdit();
+  });
+  roadmapModal.classList.add('open');
+  if(canEdit())setTimeout(()=>document.getElementById('rm-title').focus(),40);
+}
+
+function closeRoadmapModal(){roadmapModal.classList.remove('open');}
+
+function buildRoadmapCard(monthId,item){
+  const cat=ROADMAP_CATS[item.category]||ROADMAP_CATS.feature;
+  const card=document.createElement('div');
+  card.className='roadmap-card '+cat.cls;
+  card.dataset.id=item.id;
+  card.innerHTML=
+    '<span class="roadmap-card-dot"></span>'+
+    '<div class="roadmap-card-main">'+
+      '<div class="roadmap-card-title">'+escapeHtml(item.title)+'</div>'+
+      (item.desc?'<div class="roadmap-card-desc">'+escapeHtml(item.desc)+'</div>':'')+
+    '</div>'+
+    (item.live?'<span class="roadmap-card-live">LIVE</span>':'')+
+    '<div class="roadmap-card-actions">'+
+      '<button type="button" class="roadmap-card-btn" data-rm-edit title="Edit">✏</button>'+
+      '<button type="button" class="roadmap-card-btn danger" data-rm-del title="Delete">🗑</button>'+
+    '</div>';
+  card.addEventListener('click',e=>{
+    if(e.target.closest('[data-rm-del]')||e.target.closest('[data-rm-edit]'))return;
+    openRoadmapModal(monthId,item);
+  });
+  card.querySelector('[data-rm-edit]')?.addEventListener('click',e=>{
+    e.stopPropagation();
+    openRoadmapModal(monthId,item);
+  });
+  card.querySelector('[data-rm-del]')?.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(!canEdit())return;
+    const data=currentRoadmap();
+    data[monthId]=data[monthId].filter(t=>t.id!==item.id);
+    renderRoadmap();
+    saveRoadmap();
+  });
+  return card;
+}
+
+function syncRoadmapFromDom(board){
+  const next=emptyRoadmapMonths();
+  board.querySelectorAll('.roadmap-list').forEach(l=>{
+    const mid=l.dataset.month;
+    next[mid]=[...l.querySelectorAll('.roadmap-card')].map(card=>{
+      return findRoadmapItem(card.dataset.id)||{
+        id:card.dataset.id,
+        title:card.querySelector('.roadmap-card-title')?.textContent||'',
+        desc:card.querySelector('.roadmap-card-desc')?.textContent||'',
+        category:'feature',
+        live:!!card.querySelector('.roadmap-card-live'),
+      };
+    });
+  });
+  const p=isProject(activeProject)?activeProject:'smartbot';
+  roadmapByProject[p]=next;
+}
+
+function renderRoadmap(){
+  const board=document.getElementById('roadmap-board');
+  if(!board)return;
+  const data=currentRoadmap();
+  board.innerHTML='';
+  ROADMAP_MONTHS.forEach(month=>{
+    const items=data[month.id]||[];
+    const col=document.createElement('div');
+    col.className='roadmap-col';
+    col.innerHTML=
+      '<div class="roadmap-col-head" style="--rm-head:'+month.head+'">'+
+        '<div class="roadmap-col-head-row">'+
+          '<div><div class="roadmap-col-month">'+month.label+'</div><div class="roadmap-col-q">'+month.quarter+'</div></div>'+
+          '<span class="roadmap-col-count">'+items.length+'</span>'+
+        '</div>'+
+      '</div>'+
+      '<div class="roadmap-col-body">'+
+        '<div class="roadmap-list" data-month="'+month.id+'"></div>'+
+        '<button type="button" class="roadmap-add-btn" data-rm-add="'+month.id+'">＋ Add item</button>'+
+      '</div>';
+    const list=col.querySelector('.roadmap-list');
+    items.forEach(item=>list.appendChild(buildRoadmapCard(month.id,item)));
+    col.querySelector('[data-rm-add]')?.addEventListener('click',()=>openRoadmapModal(month.id,null));
+    board.appendChild(col);
+    if(canEdit()&&window.Sortable){
+      Sortable.create(list,{
+        group:{name:'roadmap-'+activeProject,pull:true,put:true},
+        animation:140,
+        onEnd(){
+          syncRoadmapFromDom(board);
+          renderRoadmap();
+          saveRoadmap();
+        },
+      });
+    }
+  });
+}
+
+['rm-close','rm-cancel'].forEach(id=>document.getElementById(id)?.addEventListener('click',closeRoadmapModal));
+roadmapModal?.addEventListener('click',e=>{if(e.target===roadmapModal)closeRoadmapModal();});
+document.getElementById('rm-save')?.addEventListener('click',()=>{
+  if(!canEdit())return;
+  const title=document.getElementById('rm-title').value.trim();
+  if(!title)return;
+  const monthId=document.getElementById('rm-month').value;
+  const editId=document.getElementById('rm-edit-id').value;
+  const payload={
+    id:editId||('RM-'+(Date.now())+'-'+(roadmapItemCounter++)),
+    title,
+    desc:document.getElementById('rm-desc').value.trim(),
+    category:document.getElementById('rm-category').value||'feature',
+    live:document.getElementById('rm-live').value==='1',
+  };
+  const data=currentRoadmap();
+  if(!Array.isArray(data[monthId]))data[monthId]=[];
+  if(editId){
+    ROADMAP_MONTHS.forEach(m=>{data[m.id]=(data[m.id]||[]).filter(t=>t.id!==editId);});
+    data[monthId].push(payload);
+  }else{
+    data[monthId].push(payload);
+  }
+  closeRoadmapModal();
+  renderRoadmap();
+  saveRoadmap();
+});
+document.getElementById('rm-delete')?.addEventListener('click',()=>{
+  if(!canEdit())return;
+  const editId=document.getElementById('rm-edit-id').value;
+  if(!editId)return;
+  const data=currentRoadmap();
+  ROADMAP_MONTHS.forEach(m=>{data[m.id]=(data[m.id]||[]).filter(t=>t.id!==editId);});
+  closeRoadmapModal();
+  renderRoadmap();
+  saveRoadmap();
+});
+
 /* ── My Tasks ── */
 let myTasks = [];
 let myTaskCounter = 1000;
@@ -3479,6 +3859,7 @@ function updateMyTasksBadge(){
   await loadBoardsMeta();
   await loadStatusOptions();
   await loadDeveloperNames();
+  await loadAllRoadmaps();
   sprints.forEach(s=>{
     if(!s.kind)s.kind='sprint';
     if(!isProject(s.project))s.project='smartbot';
