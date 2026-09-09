@@ -1539,10 +1539,6 @@ if(MOBILE_NAV_MQ.addEventListener)MOBILE_NAV_MQ.addEventListener('change',syncNa
 else if(MOBILE_NAV_MQ.addListener)MOBILE_NAV_MQ.addListener(syncNavForViewport);
 syncNavForViewport();
 
-document.addEventListener('keydown',e=>{
-  if(e.key==='Escape'&&sidebar.classList.contains('mobile-open'))closeMobileNav();
-});
-
 /* ── Page nav ── */
 function showPage(id,btn,project){
   if(isProject(project))activeProject=project;
@@ -3717,9 +3713,75 @@ function openMyTaskAdd(){
 }
 function cancelMyTask(){document.getElementById('mytask-add-row').style.display='none';}
 
+/* ── Keyboard shortcuts ── */
+function getOpenModal(){
+  return document.querySelector('.modal-overlay.open');
+}
+function closeTopModal(){
+  const m=getOpenModal();
+  if(!m)return false;
+  if(m.id==='edit-modal'){closeEdit();return true;}
+  if(m.id==='add-modal'){closeAdd();return true;}
+  if(m.id==='sprint-modal'){sprintModal.classList.remove('open');return true;}
+  if(m.id==='roadmap-modal'){closeRoadmapModal();return true;}
+  if(m.id==='delete-board-modal'){closeDeleteBoardModal();return true;}
+  m.classList.remove('open');
+  return true;
+}
+function clickModalPrimarySave(){
+  const m=getOpenModal();
+  if(!m)return false;
+  const map={
+    'edit-modal':'edit-save',
+    'add-modal':'add-save',
+    'sprint-modal':'sprint-save',
+    'roadmap-modal':'rm-save',
+  };
+  const btnId=map[m.id];
+  if(!btnId)return false;
+  const btn=document.getElementById(btnId);
+  if(!btn||btn.disabled||btn.style.display==='none')return false;
+  btn.click();
+  return true;
+}
 document.addEventListener('keydown',e=>{
-  if(e.key==='Enter'&&document.activeElement===document.getElementById('mytask-quick-title'))saveMyTask();
-  if(e.key==='Escape'&&document.getElementById('mytask-add-row').style.display!=='none')cancelMyTask();
+  // Esc — close modal, then my-task composer, then mobile nav
+  if(e.key==='Escape'){
+    if(closeTopModal()){e.preventDefault();return;}
+    const addRow=document.getElementById('mytask-add-row');
+    if(addRow&&addRow.style.display!=='none'){cancelMyTask();e.preventDefault();return;}
+    if(sidebar.classList.contains('mobile-open')){closeMobileNav();e.preventDefault();return;}
+    return;
+  }
+
+  // Enter — trigger primary Save/Add on open task (and other) modals
+  // Textareas need Ctrl/Cmd+Enter so newlines still work
+  if(e.key==='Enter'&&getOpenModal()){
+    if(e.target&&e.target.closest('button,a,[contenteditable="true"]'))return;
+    const tag=(e.target&&e.target.tagName||'').toLowerCase();
+    if(tag==='textarea'&&!(e.ctrlKey||e.metaKey))return;
+    if(clickModalPrimarySave()){e.preventDefault();return;}
+  }
+
+  // Enter — save quick My Task title
+  if(e.key==='Enter'&&document.activeElement===document.getElementById('mytask-quick-title')){
+    e.preventDefault();
+    saveMyTask();
+    return;
+  }
+
+  // Ctrl/Cmd+N — new task on the active sprint board
+  if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&(e.key==='n'||e.key==='N')){
+    if(!canEdit())return;
+    if(getOpenModal())return;
+    if(document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;
+    const boardPage=document.getElementById('page-board');
+    if(!boardPage||!boardPage.classList.contains('active'))return;
+    e.preventDefault();
+    const project=activeBoardProject();
+    const firstSec=document.querySelector('#board-items > .board-section');
+    openAddModal(project,firstSec?firstSec.dataset.sectionId:null);
+  }
 });
 
 function saveMyTask(){
