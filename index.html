@@ -1148,8 +1148,8 @@ body.view-only .mytask-title{pointer-events:none}
       <div class="mytasks-wrap">
         <div class="mytasks-header">
           <div>
-            <div style="font-size:15px;font-weight:700;color:var(--text1)">My Tasks</div>
-            <div style="font-size:11px;color:var(--text3);margin-top:2px">Personal tasks across all sprints — not tied to a board</div>
+            <div style="font-size:15px;font-weight:700;color:var(--text1)" id="mytasks-page-title">Tasks</div>
+            <div style="font-size:11px;color:var(--text3);margin-top:2px" id="mytasks-page-sub">SmartBot personal tasks — not tied to a board</div>
           </div>
           <button class="add-task-btn" onclick="openMyTaskAdd()">+ Add Task</button>
         </div>
@@ -1567,6 +1567,13 @@ function showPage(id,btn,project){
     settingsDevProject=activeProject;
     syncSettingsDevTabs();
     renderDeveloperSettings();
+  }
+  if(id==='mytasks'){
+    bindActiveMyTasks();
+    syncMyTasksHeader();
+    cancelMyTask();
+    renderMyTasks();
+    updateMyTasksBadge();
   }
   if(id==='board'||id==='settings'){
     populateDeveloperFilter();
@@ -3675,18 +3682,90 @@ document.getElementById('rm-delete')?.addEventListener('click',()=>{
   saveRoadmap();
 });
 
-/* ── My Tasks ── */
-let myTasks = [];
-let myTaskCounter = 1000;
+/* ── My Tasks (per workstream) ── */
+let myTasksByProject={smartbot:[],zenchat:[]};
+let myTasks=myTasksByProject.smartbot;
+let myTaskCounter=1000;
 
+function myTasksProject(){
+  return isProject(activeProject)?activeProject:'smartbot';
+}
+function bindActiveMyTasks(){
+  const p=myTasksProject();
+  if(!Array.isArray(myTasksByProject[p]))myTasksByProject[p]=[];
+  myTasks=myTasksByProject[p];
+}
+function syncMyTasksHeader(){
+  const p=myTasksProject();
+  const isZc=p==='zenchat';
+  const title=document.getElementById('mytasks-page-title');
+  const sub=document.getElementById('mytasks-page-sub');
+  if(title)title.textContent=isZc?'My Tasks':'Tasks';
+  if(sub)sub.textContent=isZc
+    ?'ZenChat personal tasks — not tied to a board'
+    :'SmartBot personal tasks — not tied to a board';
+  const chip=document.getElementById('topbar-chip');
+  const projectChip=document.getElementById('project-chip');
+  document.getElementById('topbar-title').textContent=projectLabel(p)+(isZc?' · My Tasks':' · Tasks');
+  if(chip)chip.textContent=isZc?'My Tasks':'Tasks';
+  if(projectChip)projectChip.textContent=projectLabel(p);
+}
+function parseMyTasksPayload(raw){
+  let data=raw;
+  if(typeof data==='string'){
+    try{
+      data=JSON.parse(data);
+      if(typeof data==='string')data=JSON.parse(data);
+    }catch(e){return[];}
+  }
+  return Array.isArray(data)?data:[];
+}
 function saveMyTasks(){
   if(!canEdit())return;
-  store.set('mytasks',JSON.stringify(myTasks));
+  const p=myTasksProject();
+  myTasksByProject[p]=myTasks;
+  store.set('mytasks:'+p,JSON.stringify(myTasksByProject[p]||[]));
 }
-function loadMyTasks(){
-  store.get('mytasks').then(r=>{
-    try{if(r?.value){myTasks=JSON.parse(r.value);renderMyTasks();updateMyTasksBadge();}}catch(e){}
-  });
+async function loadMyTasksForProject(project){
+  const p=isProject(project)?project:'smartbot';
+  try{
+    const r=await store.get('mytasks:'+p);
+    if(r&&r.value){
+      myTasksByProject[p]=parseMyTasksPayload(r.value);
+      return true;
+    }
+  }catch(e){}
+  myTasksByProject[p]=[];
+  return false;
+}
+async function loadAllMyTasks(){
+  const loadedSb=await loadMyTasksForProject('smartbot');
+  const loadedZc=await loadMyTasksForProject('zenchat');
+  // Migrate legacy shared `mytasks` into ZenChat My Tasks only (keeps history off SmartBot Tasks)
+  if(!loadedSb&&!loadedZc){
+    try{
+      const r=await store.get('mytasks');
+      if(r&&r.value){
+        const legacy=parseMyTasksPayload(r.value);
+        if(legacy.length){
+          myTasksByProject.zenchat=legacy.map(t=>({...t}));
+          if(canEdit())await store.set('mytasks:zenchat',JSON.stringify(myTasksByProject.zenchat));
+        }
+      }
+    }catch(e){}
+  }else if(!loadedZc){
+    try{
+      const r=await store.get('mytasks');
+      if(r&&r.value){
+        const legacy=parseMyTasksPayload(r.value);
+        if(legacy.length){
+          myTasksByProject.zenchat=legacy.map(t=>({...t}));
+          if(canEdit())await store.set('mytasks:zenchat',JSON.stringify(myTasksByProject.zenchat));
+        }
+      }
+    }catch(e){}
+  }
+  bindActiveMyTasks();
 }
 
 function fmtDue(dateStr){
@@ -3902,7 +3981,8 @@ function renderMyTasks(){
   });
 
   if(!myTasks.length){
-    container.innerHTML='<div style="text-align:center;padding:40px;color:var(--text4);font-size:12px">No tasks yet — click "+ Add Task" to get started</div>';
+    const label=myTasksProject()==='zenchat'?'My Tasks':'Tasks';
+    container.innerHTML='<div style="text-align:center;padding:40px;color:var(--text4);font-size:12px">No '+label.toLowerCase()+' yet — click "+ Add Task" to get started</div>';
   }
 }
 
@@ -3922,13 +4002,14 @@ function updateMyTasksBadge(){
   await loadStatusOptions();
   await loadDeveloperNames();
   await loadAllRoadmaps();
+  await loadAllMyTasks();
   sprints.forEach(s=>{
     if(!s.kind)s.kind='sprint';
     if(!isProject(s.project))s.project='smartbot';
   });
   const activeSp=sprints.find(s=>s.id===activeSprint);
   if(activeSp)activeProject=boardProject(activeSp);
-  loadMyTasks();
+  bindActiveMyTasks();
   await renderBoard();
   renderProjectNav();
   updateTopbar();
