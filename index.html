@@ -388,7 +388,7 @@ body.view-only .roadmap-card-actions{display:none!important}
 .jira-id-btn{cursor:pointer;appearance:none;transition:background .12s,border-color .12s,opacity .12s}
 .jira-id-btn:hover{background:#e0e7ff;border-color:#a5b4fc}
 .jira-id-btn.has-link{text-decoration:underline;text-underline-offset:2px}
-.jira-link-pop{display:none;position:absolute;left:0;top:calc(100% + 4px);z-index:40;min-width:180px;max-width:280px;padding:7px 9px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;box-shadow:var(--shadow-md)}
+.jira-link-pop{display:none;position:absolute;left:0;top:calc(100% + 4px);z-index:460;min-width:180px;max-width:280px;padding:7px 9px;background:var(--surface);border:1px solid var(--border2);border-radius:6px;box-shadow:var(--shadow-md)}
 .jira-link-pop.open{display:block}
 .jira-link-pop-a{font-size:11px;color:var(--accent);word-break:break-all;text-decoration:none;line-height:1.4}
 .jira-link-pop-a:hover{text-decoration:underline}
@@ -2010,11 +2010,12 @@ function updateMoveBar(){
     document.getElementById('move-bar-text').textContent=checked+' item'+(checked>1?'s':'')+' selected';
     const sel=document.getElementById('move-target-select');
     sel.innerHTML='<option value="">— Select board —</option>';
-    sprints.filter(s=>s.id!==activeSprint).forEach(s=>{
+    const project=activeBoardProject();
+    sprints.filter(s=>s.id!==activeSprint&&boardProject(s)===project).forEach(s=>{
       const o=document.createElement('option');
       o.value=s.id;
       const k=boardKind(s);
-      o.textContent=(BOARD_KIND_META[k]?.chip||'')+' · '+projectLabel(boardProject(s))+' · '+s.name;
+      o.textContent=(BOARD_KIND_META[k]?.chip||'')+' · '+s.name;
       sel.appendChild(o);
     });
   } else {
@@ -2392,22 +2393,35 @@ function hideNotesHover(){
   }
 }
 
+function closeAllJiraLinkPops(except){
+  document.querySelectorAll('.jira-link-pop.open').forEach(p=>{
+    if(except&&p===except)return;
+    p.classList.remove('open');
+  });
+}
+
 function positionNotesHover(card){
   const pop=document.getElementById('notes-hover-pop');
   if(!pop||!card)return;
-  const rect=card.getBoundingClientRect();
+  // Anchor near the title / notes indicator so the popup stays clear of the Jira chip
+  const anchor=card.querySelector('.item-header .item-title')||card.querySelector('.item-title')||card;
+  const rect=anchor.getBoundingClientRect();
+  const cardRect=card.getBoundingClientRect();
   const pad=10;
   const popW=Math.min(340,window.innerWidth-20);
   let left=rect.left;
-  let top=rect.bottom+8;
+  let top=rect.bottom+10;
   pop.style.maxWidth=popW+'px';
   pop.classList.add('open');
-  // Measure after open
   const pr=pop.getBoundingClientRect();
+  // Prefer opening below the title; if that covers the meta/Jira row, flip above the card
+  const meta=card.querySelector('.item-header .item-meta')||card.querySelector('.item-meta');
+  const metaBottom=meta?meta.getBoundingClientRect().bottom:cardRect.bottom;
+  if(top<metaBottom+4)top=metaBottom+8;
   if(left+pr.width>window.innerWidth-pad)left=Math.max(pad,window.innerWidth-pr.width-pad);
   if(left<pad)left=pad;
   if(top+pr.height>window.innerHeight-pad){
-    top=rect.top-pr.height-8;
+    top=cardRect.top-pr.height-8;
     if(top<pad)top=pad;
   }
   pop.style.left=left+'px';
@@ -2418,6 +2432,8 @@ function showNotesHover(card){
   const notes=(card.dataset.notes||'').trim();
   if(!notes){hideNotesHover();return;}
   if(card.classList.contains('dragging'))return;
+  // Never stack notes over an open Jira link pop
+  closeAllJiraLinkPops();
   const pop=document.getElementById('notes-hover-pop');
   const body=document.getElementById('notes-hover-body');
   if(!pop||!body)return;
@@ -2429,13 +2445,20 @@ function showNotesHover(card){
 }
 
 function wireNotesHover(card){
-  card.addEventListener('mouseenter',()=>{
+  const title=card.querySelector('.item-header .item-title')||card.querySelector('.item-title')||card;
+  const show=()=>{
     clearTimeout(_notesHoverTimer);
     _notesHoverTimer=setTimeout(()=>showNotesHover(card),280);
-  });
-  card.addEventListener('mouseleave',()=>{
+  };
+  const hide=()=>{
     clearTimeout(_notesHoverTimer);
     _notesHoverTimer=setTimeout(hideNotesHover,120);
+  };
+  // Hover the title (notes dot lives here) — not the whole card — so Jira chip stays usable
+  title.addEventListener('mouseenter',show);
+  title.addEventListener('mouseleave',hide);
+  card.addEventListener('mouseover',e=>{
+    if(e.target.closest('.jira-ticket-chip'))hideNotesHover();
   });
 }
 
@@ -2710,10 +2733,12 @@ function buildJiraTicketChip(jiraKey,jiraLink){
   btn.addEventListener('click',e=>{
     e.stopPropagation();
     e.preventDefault();
-    document.querySelectorAll('.jira-link-pop.open').forEach(p=>{if(p!==pop)p.classList.remove('open');});
+    hideNotesHover();
+    closeAllJiraLinkPops(pop);
     pop.classList.toggle('open');
   });
   pop.addEventListener('click',e=>e.stopPropagation());
+  wrap.addEventListener('mouseenter',()=>hideNotesHover());
 
   wrap.append(btn,pop);
   return wrap;
