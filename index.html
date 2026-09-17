@@ -173,11 +173,21 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .roadmap-col-body{padding:10px;display:flex;flex-direction:column;gap:8px;flex:1}
 .roadmap-list{display:flex;flex-direction:column;gap:8px;min-height:24px;flex:1}
 .roadmap-card{
-  border-radius:8px;padding:10px 11px;border:1px solid transparent;
-  display:flex;align-items:flex-start;gap:8px;cursor:pointer;transition:box-shadow .12s,border-color .12s;
-  position:relative;
+  border-radius:8px;border:1px solid transparent;
+  display:flex;flex-direction:column;align-items:stretch;gap:0;
+  cursor:default;transition:box-shadow .12s,border-color .12s;position:relative;
 }
 .roadmap-card:hover{box-shadow:var(--shadow-sm);border-color:rgba(0,0,0,.06)}
+.roadmap-card.drop-target-nest{outline:1.5px dashed var(--accent);outline-offset:1px}
+.roadmap-card-row{
+  display:flex;align-items:flex-start;gap:6px;padding:10px 11px;cursor:pointer;position:relative;
+}
+.roadmap-drag{
+  cursor:grab;color:var(--text4);font-size:12px;line-height:1.3;margin-top:2px;
+  opacity:0;flex-shrink:0;user-select:none;
+}
+.roadmap-card:hover .roadmap-drag{opacity:1}
+.roadmap-drag:active{cursor:grabbing}
 .roadmap-card-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
 .roadmap-card-main{flex:1;min-width:0}
 .roadmap-card-title{font-size:12px;font-weight:600;color:var(--text1);line-height:1.35}
@@ -186,14 +196,40 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
   flex-shrink:0;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
   color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;border-radius:4px;padding:2px 5px;margin-top:2px;
 }
-.roadmap-card-actions{display:none;position:absolute;top:6px;right:6px;gap:2px}
-.roadmap-card:hover .roadmap-card-actions{display:flex}
+.roadmap-card-actions{display:none;position:absolute;top:6px;right:6px;gap:2px;z-index:2}
+.roadmap-card-row:hover .roadmap-card-actions{display:flex}
 .roadmap-card-btn{
   width:22px;height:22px;border:none;border-radius:4px;background:rgba(255,255,255,.85);
   color:var(--text3);cursor:pointer;font-size:11px;line-height:1;
 }
 .roadmap-card-btn:hover{background:#fff;color:var(--text1)}
 .roadmap-card-btn.danger:hover{color:var(--red)}
+.roadmap-nest-toggle{
+  display:none;align-items:center;justify-content:center;gap:2px;
+  height:20px;min-width:28px;padding:0 5px;box-sizing:border-box;margin-top:1px;
+  border:1px solid #c7d2fe;border-radius:4px;background:#eef2ff;
+  color:var(--accent);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;
+  flex-shrink:0;line-height:1;
+}
+.roadmap-nest-toggle.show{display:inline-flex}
+.roadmap-nest-toggle:hover{background:#e0e7ff}
+.roadmap-nest{
+  margin:0 8px 8px 20px;padding-left:8px;border-left:1.5px solid var(--border2);
+  display:flex;flex-direction:column;gap:6px;
+}
+.roadmap-nest.is-collapsed{display:none!important}
+.roadmap-nest-list{display:flex;flex-direction:column;gap:6px;min-height:6px}
+.roadmap-nest .roadmap-card{box-shadow:none}
+.roadmap-nest .roadmap-card-title{font-size:11px}
+.roadmap-add-sub{
+  display:none;width:100%;padding:5px 8px;border:1px dashed var(--border2);border-radius:6px;
+  background:transparent;color:var(--text4);font-size:10px;font-weight:600;cursor:pointer;
+  font-family:'Inter',sans-serif;margin:0 8px 8px 20px;width:calc(100% - 28px);
+}
+.roadmap-card:hover > .roadmap-add-sub{display:block}
+body.view-only .roadmap-add-sub,
+body.view-only .roadmap-drag,
+body.view-only .roadmap-card-actions{display:none!important}
 .roadmap-add-btn{
   width:100%;margin-top:2px;padding:8px;border:1px dashed var(--border2);border-radius:8px;
   background:transparent;color:var(--text3);font-size:11px;font-weight:600;cursor:pointer;
@@ -206,8 +242,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .roadmap-card.cat-feature .roadmap-card-dot{background:#3b82f6}
 .roadmap-card.cat-platform .roadmap-card-dot{background:#8b5cf6}
 .roadmap-card.cat-reporting .roadmap-card-dot{background:#10b981}
-body.view-only .roadmap-add-btn,
-body.view-only .roadmap-card-actions{display:none!important}
+body.view-only .roadmap-add-btn{display:none!important}
 @media(max-width:1100px){
   .roadmap-board{grid-template-columns:repeat(2,minmax(200px,1fr))}
 }
@@ -853,6 +888,7 @@ body.view-only .mytask-title{pointer-events:none}
     <div class="modal-body">
       <input type="hidden" id="rm-month" value="sep">
       <input type="hidden" id="rm-edit-id" value="">
+      <input type="hidden" id="rm-parent-id" value="">
       <div class="field-group"><div class="field-label">Title</div><input class="field-input" id="rm-title" type="text" placeholder="e.g. Cross-centre appointments"></div>
       <div class="field-group"><div class="field-label">Description</div><textarea class="field-textarea" id="rm-desc" placeholder="Short note…" style="min-height:64px"></textarea></div>
       <div class="field-row">
@@ -3495,19 +3531,27 @@ function currentRoadmap(){
   return roadmapByProject[p];
 }
 
+function normalizeRoadmapItem(item){
+  const rawKids=item&&item.children;
+  const kids=Array.isArray(rawKids)?rawKids:rawKids&&typeof rawKids==='object'?Object.values(rawKids):[];
+  return {
+    id:String(item.id||('RM-'+(roadmapItemCounter++))),
+    title:String(item.title||'').trim()||'Untitled',
+    desc:String(item.desc||item.description||'').trim(),
+    category:ROADMAP_CATS[item.category]?item.category:'feature',
+    live:!!item.live,
+    collapsed:item.collapsed!==false,
+    children:kids.filter(Boolean).map(normalizeRoadmapItem),
+  };
+}
+
 function normalizeRoadmapPayload(data){
   const out=emptyRoadmapMonths();
   if(!data||typeof data!=='object')return out;
   ROADMAP_MONTHS.forEach(m=>{
     const raw=data[m.id];
     const arr=Array.isArray(raw)?raw:raw&&typeof raw==='object'?Object.values(raw):[];
-    out[m.id]=arr.filter(Boolean).map(item=>({
-      id:String(item.id||('RM-'+(roadmapItemCounter++))),
-      title:String(item.title||'').trim()||'Untitled',
-      desc:String(item.desc||item.description||'').trim(),
-      category:ROADMAP_CATS[item.category]?item.category:'feature',
-      live:!!item.live,
-    }));
+    out[m.id]=arr.filter(Boolean).map(normalizeRoadmapItem);
   });
   return out;
 }
@@ -3545,25 +3589,55 @@ async function loadAllRoadmaps(){
   await loadRoadmapForProject('zenchat');
 }
 
-function findRoadmapItem(id){
-  const data=currentRoadmap();
-  for(const m of ROADMAP_MONTHS){
-    const hit=(data[m.id]||[]).find(t=>t.id===id);
+function findRoadmapItemInList(list,id){
+  if(!Array.isArray(list))return null;
+  for(const t of list){
+    if(t.id===id)return t;
+    const hit=findRoadmapItemInList(t.children,id);
     if(hit)return hit;
   }
   return null;
 }
 
-function openRoadmapModal(monthId,item){
+function findRoadmapItem(id){
+  const data=currentRoadmap();
+  for(const m of ROADMAP_MONTHS){
+    const hit=findRoadmapItemInList(data[m.id],id);
+    if(hit)return hit;
+  }
+  return null;
+}
+
+function removeRoadmapItemById(list,id){
+  if(!Array.isArray(list))return false;
+  const idx=list.findIndex(t=>t.id===id);
+  if(idx>=0){list.splice(idx,1);return true;}
+  for(const t of list){
+    if(removeRoadmapItemById(t.children,id))return true;
+  }
+  return false;
+}
+
+function openRoadmapModal(monthId,item,parentId){
   if(!canEdit()&&!item)return;
   const month=ROADMAP_MONTHS.find(m=>m.id===monthId)||ROADMAP_MONTHS[0];
+  const parent=parentId?findRoadmapItem(parentId):null;
   document.getElementById('rm-month').value=month.id;
   document.getElementById('rm-edit-id').value=item?.id||'';
-  document.getElementById('rm-modal-title').textContent=item?'Edit roadmap item':'Add roadmap item';
-  document.getElementById('rm-modal-sub').textContent=month.label+' · '+month.quarter;
+  document.getElementById('rm-parent-id').value=parentId||'';
+  if(item){
+    document.getElementById('rm-modal-title').textContent='Edit roadmap item';
+    document.getElementById('rm-modal-sub').textContent=month.label+' · '+month.quarter;
+  }else if(parent){
+    document.getElementById('rm-modal-title').textContent='Add subtask';
+    document.getElementById('rm-modal-sub').textContent='Under · '+parent.title;
+  }else{
+    document.getElementById('rm-modal-title').textContent='Add roadmap item';
+    document.getElementById('rm-modal-sub').textContent=month.label+' · '+month.quarter;
+  }
   document.getElementById('rm-title').value=item?.title||'';
   document.getElementById('rm-desc').value=item?.desc||'';
-  document.getElementById('rm-category').value=item?.category||'feature';
+  document.getElementById('rm-category').value=item?.category||parent?.category||'feature';
   document.getElementById('rm-live').value=item?.live?'1':'0';
   const del=document.getElementById('rm-delete');
   del.style.display=item&&canEdit()?'':'none';
@@ -3578,12 +3652,94 @@ function openRoadmapModal(monthId,item){
 
 function closeRoadmapModal(){roadmapModal.classList.remove('open');}
 
+function ensureRoadmapNest(card){
+  let nest=card.querySelector(':scope > .roadmap-nest');
+  if(nest)return nest;
+  nest=document.createElement('div');
+  nest.className='roadmap-nest is-collapsed';
+  const list=document.createElement('div');
+  list.className='roadmap-nest-list';
+  nest.appendChild(list);
+  const addSub=card.querySelector(':scope > .roadmap-add-sub');
+  if(addSub)card.insertBefore(nest,addSub);
+  else card.appendChild(nest);
+  return nest;
+}
+
+function roadmapChildCount(card){
+  const list=card.querySelector(':scope > .roadmap-nest > .roadmap-nest-list');
+  if(!list)return 0;
+  return [...list.children].filter(c=>c.classList.contains('roadmap-card')).length;
+}
+
+function refreshRoadmapNestChrome(card){
+  if(!card||!card.classList.contains('roadmap-card'))return;
+  const nest=card.querySelector(':scope > .roadmap-nest');
+  const row=card.querySelector(':scope > .roadmap-card-row');
+  if(!row)return;
+  let btn=row.querySelector(':scope > .roadmap-nest-toggle');
+  const count=roadmapChildCount(card);
+  if(!btn){
+    btn=document.createElement('button');
+    btn.type='button';
+    btn.className='roadmap-nest-toggle';
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      const n=card.querySelector(':scope > .roadmap-nest');
+      if(!n||!roadmapChildCount(card))return;
+      n.classList.toggle('is-collapsed');
+      refreshRoadmapNestChrome(card);
+      // Persist collapse without full re-render
+      const item=findRoadmapItem(card.dataset.id);
+      if(item){item.collapsed=n.classList.contains('is-collapsed');saveRoadmap();}
+    });
+    const actions=row.querySelector('.roadmap-card-actions');
+    if(actions)row.insertBefore(btn,actions);
+    else row.appendChild(btn);
+  }
+  if(count>0){
+    btn.classList.add('show');
+    const collapsed=!nest||nest.classList.contains('is-collapsed');
+    btn.textContent=(collapsed?'▶ ':'▼ ')+count;
+    btn.title=collapsed?'Show subtasks':'Hide subtasks';
+  }else{
+    btn.classList.remove('show');
+    btn.textContent='';
+  }
+}
+
+function serializeRoadmapCard(card){
+  const nest=card.querySelector(':scope > .roadmap-nest');
+  const list=nest?nest.querySelector(':scope > .roadmap-nest-list'):null;
+  const children=list
+    ?[...list.children].filter(c=>c.classList.contains('roadmap-card')).map(serializeRoadmapCard)
+    :[];
+  const existing=findRoadmapItem(card.dataset.id);
+  return {
+    id:card.dataset.id,
+    title:card.querySelector(':scope > .roadmap-card-row .roadmap-card-title')?.textContent?.trim()
+      ||card.querySelector('.roadmap-card-title')?.textContent?.trim()||existing?.title||'',
+    desc:card.querySelector(':scope > .roadmap-card-row .roadmap-card-desc')?.textContent?.trim()
+      ||existing?.desc||'',
+    category:card.dataset.category||existing?.category||'feature',
+    live:!!card.querySelector(':scope > .roadmap-card-row .roadmap-card-live'),
+    collapsed:!nest||nest.classList.contains('is-collapsed'),
+    children,
+  };
+}
+
 function buildRoadmapCard(monthId,item){
   const cat=ROADMAP_CATS[item.category]||ROADMAP_CATS.feature;
   const card=document.createElement('div');
   card.className='roadmap-card '+cat.cls;
   card.dataset.id=item.id;
-  card.innerHTML=
+  card.dataset.category=item.category||'feature';
+  card.dataset.month=monthId;
+
+  const row=document.createElement('div');
+  row.className='roadmap-card-row';
+  row.innerHTML=
+    '<span class="roadmap-drag" title="Drag">⠿</span>'+
     '<span class="roadmap-card-dot"></span>'+
     '<div class="roadmap-card-main">'+
       '<div class="roadmap-card-title">'+escapeHtml(item.title)+'</div>'+
@@ -3594,22 +3750,49 @@ function buildRoadmapCard(monthId,item){
       '<button type="button" class="roadmap-card-btn" data-rm-edit title="Edit">✏</button>'+
       '<button type="button" class="roadmap-card-btn danger" data-rm-del title="Delete">🗑</button>'+
     '</div>';
-  card.addEventListener('click',e=>{
-    if(e.target.closest('[data-rm-del]')||e.target.closest('[data-rm-edit]'))return;
+
+  row.addEventListener('click',e=>{
+    if(e.target.closest('[data-rm-del],[data-rm-edit],.roadmap-drag,.roadmap-nest-toggle'))return;
     openRoadmapModal(monthId,item);
   });
-  card.querySelector('[data-rm-edit]')?.addEventListener('click',e=>{
+  row.querySelector('[data-rm-edit]')?.addEventListener('click',e=>{
     e.stopPropagation();
     openRoadmapModal(monthId,item);
   });
-  card.querySelector('[data-rm-del]')?.addEventListener('click',e=>{
+  row.querySelector('[data-rm-del]')?.addEventListener('click',e=>{
     e.stopPropagation();
     if(!canEdit())return;
     const data=currentRoadmap();
-    data[monthId]=data[monthId].filter(t=>t.id!==item.id);
+    removeRoadmapItemById(data[monthId],item.id);
     renderRoadmap();
     saveRoadmap();
   });
+
+  card.appendChild(row);
+
+  const kids=Array.isArray(item.children)?item.children:[];
+  if(kids.length){
+    const nest=document.createElement('div');
+    nest.className='roadmap-nest'+(item.collapsed!==false?' is-collapsed':'');
+    const nestList=document.createElement('div');
+    nestList.className='roadmap-nest-list';
+    kids.forEach(child=>nestList.appendChild(buildRoadmapCard(monthId,child)));
+    nest.appendChild(nestList);
+    card.appendChild(nest);
+  }
+
+  const addSub=document.createElement('button');
+  addSub.type='button';
+  addSub.className='roadmap-add-sub';
+  addSub.textContent='＋ Add subtask';
+  addSub.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(!canEdit())return;
+    openRoadmapModal(monthId,null,item.id);
+  });
+  card.appendChild(addSub);
+
+  refreshRoadmapNestChrome(card);
   return card;
 }
 
@@ -3617,18 +3800,68 @@ function syncRoadmapFromDom(board){
   const next=emptyRoadmapMonths();
   board.querySelectorAll('.roadmap-list').forEach(l=>{
     const mid=l.dataset.month;
-    next[mid]=[...l.querySelectorAll('.roadmap-card')].map(card=>{
-      return findRoadmapItem(card.dataset.id)||{
-        id:card.dataset.id,
-        title:card.querySelector('.roadmap-card-title')?.textContent||'',
-        desc:card.querySelector('.roadmap-card-desc')?.textContent||'',
-        category:'feature',
-        live:!!card.querySelector('.roadmap-card-live'),
-      };
-    });
+    next[mid]=[...l.children]
+      .filter(c=>c.classList.contains('roadmap-card'))
+      .map(serializeRoadmapCard);
   });
   const p=isProject(activeProject)?activeProject:'smartbot';
   roadmapByProject[p]=next;
+}
+
+let rmNestTarget=null;
+function makeRoadmapSortable(list){
+  if(!list||!window.Sortable)return;
+  if(list._rmSortable){
+    list._rmSortable.option('disabled',!canEdit());
+    return;
+  }
+  list._rmSortable=Sortable.create(list,{
+    group:{name:'roadmap-nest-'+activeProject,pull:true,put:true},
+    handle:'.roadmap-drag',
+    animation:140,
+    disabled:!canEdit(),
+    ghostClass:'sortable-ghost',
+    chosenClass:'sortable-chosen',
+    dragClass:'sortable-drag',
+    onStart(){rmNestTarget=null;},
+    onMove(evt){
+      if(!canEdit())return false;
+      document.querySelectorAll('.roadmap-card.drop-target-nest').forEach(el=>el.classList.remove('drop-target-nest'));
+      const oc=evt.related?.classList.contains('roadmap-card')?evt.related:null;
+      if(oc&&oc!==evt.dragged&&!oc.contains(evt.dragged)){
+        const rect=oc.getBoundingClientRect();
+        const my=evt.originalEvent?.clientY||0;
+        if(my<rect.top+rect.height*.45){
+          oc.classList.add('drop-target-nest');
+          rmNestTarget=oc;
+          return false;
+        }
+      }
+      rmNestTarget=null;
+      return true;
+    },
+    onEnd(evt){
+      document.querySelectorAll('.roadmap-card.drop-target-nest').forEach(el=>el.classList.remove('drop-target-nest'));
+      if(!canEdit())return;
+      if(rmNestTarget&&evt.item&&rmNestTarget!==evt.item&&!rmNestTarget.contains(evt.item)){
+        const nest=ensureRoadmapNest(rmNestTarget);
+        const nl=nest.querySelector(':scope > .roadmap-nest-list');
+        if(nl&&!nl.contains(evt.item)){
+          evt.item.parentNode?.removeChild(evt.item);
+          nl.appendChild(evt.item);
+          nest.classList.remove('is-collapsed');
+          makeRoadmapSortable(nl);
+        }
+        rmNestTarget=null;
+      }
+      const board=document.getElementById('roadmap-board');
+      if(board){
+        syncRoadmapFromDom(board);
+        renderRoadmap();
+        saveRoadmap();
+      }
+    },
+  });
 }
 
 function renderRoadmap(){
@@ -3655,16 +3888,9 @@ function renderRoadmap(){
     items.forEach(item=>list.appendChild(buildRoadmapCard(month.id,item)));
     col.querySelector('[data-rm-add]')?.addEventListener('click',()=>openRoadmapModal(month.id,null));
     board.appendChild(col);
-    if(canEdit()&&window.Sortable){
-      Sortable.create(list,{
-        group:{name:'roadmap-'+activeProject,pull:true,put:true},
-        animation:140,
-        onEnd(){
-          syncRoadmapFromDom(board);
-          renderRoadmap();
-          saveRoadmap();
-        },
-      });
+    if(canEdit()){
+      makeRoadmapSortable(list);
+      list.querySelectorAll('.roadmap-nest-list').forEach(makeRoadmapSortable);
     }
   });
 }
@@ -3677,18 +3903,38 @@ document.getElementById('rm-save')?.addEventListener('click',()=>{
   if(!title)return;
   const monthId=document.getElementById('rm-month').value;
   const editId=document.getElementById('rm-edit-id').value;
-  const payload={
+  const parentId=document.getElementById('rm-parent-id').value;
+  const payload=normalizeRoadmapItem({
     id:editId||('RM-'+(Date.now())+'-'+(roadmapItemCounter++)),
     title,
     desc:document.getElementById('rm-desc').value.trim(),
     category:document.getElementById('rm-category').value||'feature',
     live:document.getElementById('rm-live').value==='1',
-  };
+    collapsed:true,
+    children:editId?(findRoadmapItem(editId)?.children||[]):[],
+  });
   const data=currentRoadmap();
   if(!Array.isArray(data[monthId]))data[monthId]=[];
   if(editId){
-    ROADMAP_MONTHS.forEach(m=>{data[m.id]=(data[m.id]||[]).filter(t=>t.id!==editId);});
-    data[monthId].push(payload);
+    const existing=findRoadmapItem(editId);
+    if(existing){
+      existing.title=payload.title;
+      existing.desc=payload.desc;
+      existing.category=payload.category;
+      existing.live=payload.live;
+      // keep children + collapsed
+    }else{
+      data[monthId].push(payload);
+    }
+  }else if(parentId){
+    const parent=findRoadmapItem(parentId);
+    if(parent){
+      if(!Array.isArray(parent.children))parent.children=[];
+      parent.children.push(payload);
+      parent.collapsed=false;
+    }else{
+      data[monthId].push(payload);
+    }
   }else{
     data[monthId].push(payload);
   }
@@ -3701,7 +3947,7 @@ document.getElementById('rm-delete')?.addEventListener('click',()=>{
   const editId=document.getElementById('rm-edit-id').value;
   if(!editId)return;
   const data=currentRoadmap();
-  ROADMAP_MONTHS.forEach(m=>{data[m.id]=(data[m.id]||[]).filter(t=>t.id!==editId);});
+  ROADMAP_MONTHS.forEach(m=>removeRoadmapItemById(data[m.id],editId));
   closeRoadmapModal();
   renderRoadmap();
   saveRoadmap();
