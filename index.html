@@ -507,10 +507,16 @@ body.view-only .roadmap-add-btn{display:none!important}
 
 .mytasks-wrap{max-width:720px}
 .mytasks-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.mytask-add-row{display:flex;align-items:center;gap:7px;padding:10px 14px;background:var(--surface);border:1px solid var(--accent-md);border-radius:var(--radius);margin-bottom:12px;flex-wrap:wrap}
-.mytask-quick-input{flex:1;min-width:120px;padding:6px 9px;border:1px solid var(--border2);border-radius:5px;font-size:12px;font-family:'Inter',sans-serif;outline:none;color:var(--text1)}
+.mytask-add-row{display:flex;align-items:flex-start;gap:7px;padding:10px 14px;background:var(--surface);border:1px solid var(--accent-md);border-radius:var(--radius);margin-bottom:12px;flex-wrap:wrap}
+.mytask-quick-input{padding:6px 9px;border:1px solid var(--border2);border-radius:5px;font-size:12px;font-family:'Inter',sans-serif;outline:none;color:var(--text1)}
 .mytask-quick-input:focus{border-color:var(--accent)}
 .mytask-quick-sel{padding:6px 8px;border:1px solid var(--border2);border-radius:5px;font-size:12px;font-family:'Inter',sans-serif;outline:none;color:var(--text1);cursor:pointer}
+.mytask-quick-editor{
+  flex:1;min-width:180px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);
+}
+.mytask-quick-editor:focus-within{border-color:var(--accent)}
+.mytask-quick-editor .mytask-rte-toolbar{display:flex}
+.mytask-add-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .mytask-group{margin-bottom:20px}
 .mytask-group-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;user-select:none}
 .mytask-group-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3)}
@@ -520,21 +526,51 @@ body.view-only .roadmap-add-btn{display:none!important}
 .mytask-group.collapsed .mytask-group-toggle{transform:rotate(-90deg)}
 .mytask-group-body{display:flex;flex-direction:column;gap:2px}
 .mytask-group.collapsed .mytask-group-body{display:none}
-.mytask-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);transition:box-shadow .12s,border-color .12s}
+.mytask-row{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);transition:box-shadow .12s,border-color .12s}
 .mytask-row:hover{box-shadow:var(--shadow-sm);border-color:var(--border2)}
-.mytask-row.done-task .mytask-title{text-decoration:line-through;color:var(--text4)}
-.mytask-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:10px;color:transparent;transition:all .12s;background:var(--surface)}
+.mytask-row.done-task .mytask-rte{text-decoration:line-through;color:var(--text4)}
+.mytask-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:10px;color:transparent;transition:all .12s;background:var(--surface);margin-top:10px}
 .mytask-check.checked{background:var(--green);border-color:var(--green);color:#fff}
-.mytask-title{flex:1;font-size:12px;font-weight:500;color:var(--text1);outline:none;min-width:0}
-.mytask-title:focus{background:var(--surface2);border-radius:3px;padding:1px 4px;margin:-1px -4px}
-.priority-chip{font-size:10px;font-weight:500;padding:1px 6px;border-radius:8px;border:1px solid;flex-shrink:0}
+.mytask-editor{
+  flex:1;min-width:0;border:1px solid transparent;border-radius:6px;background:transparent;
+  transition:border-color .12s,background .12s,box-shadow .12s;
+}
+.mytask-editor:focus-within{
+  border-color:var(--accent-md);background:var(--surface);box-shadow:0 0 0 2px var(--accent-lt);
+}
+.mytask-rte-toolbar{
+  display:none;align-items:center;gap:2px;padding:4px 6px 0;flex-wrap:wrap;
+}
+.mytask-editor:focus-within .mytask-rte-toolbar,
+.mytask-quick-editor .mytask-rte-toolbar{display:flex}
+.mytask-rte-btn{
+  width:24px;height:24px;border:none;border-radius:4px;background:transparent;color:var(--text2);
+  cursor:pointer;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;line-height:1;
+}
+.mytask-rte-btn:hover{background:var(--surface2);color:var(--text1)}
+.mytask-rte-btn.italic{font-style:italic;font-weight:600}
+.mytask-rte-btn.underline{text-decoration:underline}
+.mytask-rte{
+  min-height:28px;max-height:180px;overflow-y:auto;padding:6px 8px 8px;font-size:12px;font-weight:500;
+  color:var(--text1);outline:none;line-height:1.5;white-space:pre-wrap;word-break:break-word;
+}
+.mytask-rte:empty:before{content:attr(data-placeholder);color:var(--text4);font-weight:400;pointer-events:none}
+.mytask-rte b,.mytask-rte strong{font-weight:700}
+.mytask-rte i,.mytask-rte em{font-style:italic}
+.mytask-rte u{text-decoration:underline}
+.mytask-rte ul,.mytask-rte ol{margin:4px 0 4px 18px;padding:0}
+.mytask-rte li{margin:2px 0}
+.mytask-rte p{margin:0 0 4px}
+.mytask-rte p:last-child{margin-bottom:0}
+.mytask-quick-editor .mytask-rte{min-height:44px;max-height:140px}
+.priority-chip{font-size:10px;font-weight:500;padding:1px 6px;border-radius:8px;border:1px solid;flex-shrink:0;margin-top:8px}
 .p-high{color:#b91c1c;background:#fef2f2;border-color:#fecaca}
 .p-medium{color:#92400e;background:#fffbeb;border-color:#fde68a}
 .p-low{color:#166534;background:#f0fdf4;border-color:#bbf7d0}
 .p-none{color:var(--text4);background:var(--surface2);border-color:var(--border)}
-.mytask-due{font-size:10px;color:var(--text4);font-family:'JetBrains Mono',monospace;flex-shrink:0}
+.mytask-due{font-size:10px;color:var(--text4);font-family:'JetBrains Mono',monospace;flex-shrink:0;margin-top:10px}
 .mytask-due.overdue{color:var(--red)}
-.mytask-actions{display:flex;gap:4px;opacity:0;transition:opacity .12s;flex-shrink:0}
+.mytask-actions{display:flex;gap:4px;opacity:0;transition:opacity .12s;flex-shrink:0;margin-top:8px}
 .mytask-row:hover .mytask-actions{opacity:1}
 .mytask-del-btn,.mytask-note-btn{width:18px;height:18px;border-radius:3px;border:none;background:none;color:var(--text4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px}
 .mytask-del-btn:hover{background:var(--red-lt);color:var(--red)}
@@ -676,7 +712,8 @@ body.view-only .status-pill-arrow{display:none!important}
 body.view-only .status-pill{cursor:default;pointer-events:none}
 body.view-only .board-section-name{pointer-events:none;cursor:default}
 body.view-only .mytask-check{pointer-events:none;cursor:default}
-body.view-only .mytask-title{pointer-events:none}
+body.view-only .mytask-rte{pointer-events:none}
+body.view-only .mytask-rte-toolbar{display:none!important}
 
 /* ── Mobile menu button + backdrop ── */
 .mobile-menu-btn{
@@ -1192,16 +1229,27 @@ body.view-only .mytask-title{pointer-events:none}
 
         <!-- Quick add inline -->
         <div class="mytask-add-row" id="mytask-add-row" style="display:none">
-          <input class="mytask-quick-input" id="mytask-quick-title" type="text" placeholder="Task title…">
-          <select class="mytask-quick-sel" id="mytask-quick-priority">
-            <option value="none">No priority</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-          <input class="mytask-quick-input" id="mytask-quick-due" type="date" style="max-width:130px">
-          <button class="btn-primary" style="font-size:11px;padding:5px 12px" onclick="saveMyTask()">Add</button>
-          <button class="btn-cancel" style="font-size:11px;padding:5px 10px" onclick="cancelMyTask()">Cancel</button>
+          <div class="mytask-quick-editor" id="mytask-quick-editor">
+            <div class="mytask-rte-toolbar" data-rte-toolbar>
+              <button type="button" class="mytask-rte-btn" data-cmd="bold" title="Bold (Ctrl+B)">B</button>
+              <button type="button" class="mytask-rte-btn italic" data-cmd="italic" title="Italic (Ctrl+I)">I</button>
+              <button type="button" class="mytask-rte-btn underline" data-cmd="underline" title="Underline (Ctrl+U)">U</button>
+              <button type="button" class="mytask-rte-btn" data-cmd="insertUnorderedList" title="Bullet list">•</button>
+              <button type="button" class="mytask-rte-btn" data-cmd="insertOrderedList" title="Numbered list">1.</button>
+            </div>
+            <div class="mytask-rte" id="mytask-quick-title" contenteditable="true" data-placeholder="Task title… Shift+Enter for new line" role="textbox" aria-multiline="true"></div>
+          </div>
+          <div class="mytask-add-meta">
+            <select class="mytask-quick-sel" id="mytask-quick-priority">
+              <option value="none">No priority</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+            <input class="mytask-quick-input" id="mytask-quick-due" type="date" style="max-width:130px">
+            <button class="btn-primary" style="font-size:11px;padding:5px 12px" onclick="saveMyTask()">Add</button>
+            <button class="btn-cancel" style="font-size:11px;padding:5px 10px" onclick="cancelMyTask()">Cancel</button>
+          </div>
         </div>
 
         <!-- Groups -->
@@ -4058,10 +4106,125 @@ function openMyTaskAdd(){
   const today=new Date();
   document.getElementById('mytask-quick-due').value=today.toISOString().split('T')[0];
   document.getElementById('mytask-quick-priority').value='none';
-  document.getElementById('mytask-quick-title').value='';
-  setTimeout(()=>document.getElementById('mytask-quick-title').focus(),50);
+  const rte=document.getElementById('mytask-quick-title');
+  rte.innerHTML='';
+  setTimeout(()=>rte.focus(),50);
 }
-function cancelMyTask(){document.getElementById('mytask-add-row').style.display='none';}
+function cancelMyTask(){
+  document.getElementById('mytask-add-row').style.display='none';
+  const rte=document.getElementById('mytask-quick-title');
+  if(rte)rte.innerHTML='';
+}
+
+/* ── My Tasks rich text ── */
+const MYTASK_RTE_ALLOWED=new Set(['B','STRONG','I','EM','U','BR','DIV','P','UL','OL','LI','SPAN']);
+function myTaskPlainText(htmlOrEl){
+  const el=typeof htmlOrEl==='string'
+    ?Object.assign(document.createElement('div'),{innerHTML:htmlOrEl})
+    :htmlOrEl;
+  return (el.innerText||el.textContent||'').replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+}
+function sanitizeMyTaskHtml(html){
+  const wrap=document.createElement('div');
+  wrap.innerHTML=html||'';
+  (function walk(node){
+    const kids=[...node.childNodes];
+    kids.forEach(child=>{
+      if(child.nodeType===Node.TEXT_NODE)return;
+      if(child.nodeType!==Node.ELEMENT_NODE){child.remove();return;}
+      const tag=child.tagName.toUpperCase();
+      if(!MYTASK_RTE_ALLOWED.has(tag)){
+        while(child.firstChild)node.insertBefore(child.firstChild,child);
+        child.remove();
+        return;
+      }
+      [...child.attributes].forEach(a=>child.removeAttribute(a.name));
+      walk(child);
+    });
+  })(wrap);
+  return wrap.innerHTML;
+}
+function myTaskHtmlFromEditor(el){
+  return sanitizeMyTaskHtml(el.innerHTML);
+}
+function insertMyTaskLineBreak(){
+  if(document.execCommand('insertLineBreak'))return;
+  if(document.execCommand('insertHTML',false,'<br>'))return;
+  const sel=window.getSelection();
+  if(!sel||!sel.rangeCount)return;
+  const range=sel.getRangeAt(0);
+  range.deleteContents();
+  const br=document.createElement('br');
+  range.insertNode(br);
+  range.setStartAfter(br);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+function buildMyTaskRteToolbar(editorEl){
+  const bar=document.createElement('div');
+  bar.className='mytask-rte-toolbar';
+  const cmds=[
+    {cmd:'bold',label:'B',title:'Bold (Ctrl+B)'},
+    {cmd:'italic',label:'I',title:'Italic (Ctrl+I)',cls:'italic'},
+    {cmd:'underline',label:'U',title:'Underline (Ctrl+U)',cls:'underline'},
+    {cmd:'insertUnorderedList',label:'•',title:'Bullet list'},
+    {cmd:'insertOrderedList',label:'1.',title:'Numbered list'},
+  ];
+  cmds.forEach(({cmd,label,title,cls})=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='mytask-rte-btn'+(cls?' '+cls:'');
+    btn.title=title;
+    btn.textContent=label;
+    btn.addEventListener('mousedown',e=>{
+      e.preventDefault();
+      editorEl.focus();
+      document.execCommand(cmd,false,null);
+    });
+    bar.appendChild(btn);
+  });
+  return bar;
+}
+function bindMyTaskRteKeys(el,{onSubmit}={}){
+  el.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      if(e.ctrlKey||e.metaKey){
+        e.preventDefault();
+        if(onSubmit)onSubmit();
+        else el.blur();
+        return;
+      }
+      // Enter and Shift+Enter both insert a soft line break (rich multiline)
+      e.preventDefault();
+      insertMyTaskLineBreak();
+      return;
+    }
+    if((e.ctrlKey||e.metaKey)&&!e.altKey){
+      const k=e.key.toLowerCase();
+      if(k==='b'){e.preventDefault();document.execCommand('bold');}
+      else if(k==='i'){e.preventDefault();document.execCommand('italic');}
+      else if(k==='u'){e.preventDefault();document.execCommand('underline');}
+    }
+  });
+}
+function initMyTaskQuickRte(){
+  const rte=document.getElementById('mytask-quick-title');
+  if(!rte||rte.dataset.rteBound)return;
+  rte.dataset.rteBound='1';
+  bindMyTaskRteKeys(rte,{onSubmit:()=>saveMyTask()});
+  const bar=document.querySelector('#mytask-quick-editor [data-rte-toolbar]');
+  if(bar){
+    bar.querySelectorAll('[data-cmd]').forEach(btn=>{
+      btn.addEventListener('mousedown',e=>{
+        e.preventDefault();
+        rte.focus();
+        document.execCommand(btn.dataset.cmd,false,null);
+      });
+    });
+  }
+}
+initMyTaskQuickRte();
 
 /* ── Keyboard shortcuts ── */
 function getOpenModal(){
@@ -4105,7 +4268,7 @@ document.addEventListener('keydown',e=>{
   }
 
   // Enter — trigger primary Save/Add on open task (and other) modals
-  // Textareas need Ctrl/Cmd+Enter so newlines still work
+  // Textareas / contenteditable need Ctrl/Cmd+Enter so newlines still work
   if(e.key==='Enter'&&getOpenModal()){
     if(e.target&&e.target.closest('button,a,[contenteditable="true"]'))return;
     const tag=(e.target&&e.target.tagName||'').toLowerCase();
@@ -4113,18 +4276,12 @@ document.addEventListener('keydown',e=>{
     if(clickModalPrimarySave()){e.preventDefault();return;}
   }
 
-  // Enter — save quick My Task title
-  if(e.key==='Enter'&&document.activeElement===document.getElementById('mytask-quick-title')){
-    e.preventDefault();
-    saveMyTask();
-    return;
-  }
-
   // Ctrl/Cmd+N — new task on the active sprint board
   if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&(e.key==='n'||e.key==='N')){
     if(!canEdit())return;
     if(getOpenModal())return;
     if(document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;
+    if(document.activeElement&&document.activeElement.isContentEditable)return;
     const boardPage=document.getElementById('page-board');
     if(!boardPage||!boardPage.classList.contains('active'))return;
     e.preventDefault();
@@ -4135,12 +4292,14 @@ document.addEventListener('keydown',e=>{
 });
 
 function saveMyTask(){
-  const title=document.getElementById('mytask-quick-title').value.trim();
+  const rte=document.getElementById('mytask-quick-title');
+  const html=myTaskHtmlFromEditor(rte);
+  const title=myTaskPlainText(rte);
   if(!title)return;
   const priority=document.getElementById('mytask-quick-priority').value;
   const due=document.getElementById('mytask-quick-due').value;
   myTaskCounter++;
-  myTasks.push({id:'MT-'+myTaskCounter,title,priority,due,done:false,note:''});
+  myTasks.push({id:'MT-'+myTaskCounter,title,html,priority,due,done:false,note:''});
   saveMyTasks();
   renderMyTasks();
   cancelMyTask();
@@ -4161,19 +4320,35 @@ function buildMyTaskRow(task){
     task.done=!task.done;
     chk.classList.toggle('checked',task.done);
     chk.textContent=task.done?'✓':'';
-    titleEl.classList.toggle('done-task',task.done);
     row.classList.toggle('done-task',task.done);
     saveMyTasks();updateMyTasksBadge();
-    // re-render to move to correct group
     setTimeout(()=>renderMyTasks(),300);
   });
 
-  const titleEl=document.createElement('div');
-  titleEl.className='mytask-title';
-  titleEl.textContent=task.title;
-  titleEl.contentEditable='true';
-  titleEl.addEventListener('blur',()=>{task.title=titleEl.textContent.trim();saveMyTasks();});
-  titleEl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();titleEl.blur();}});
+  const editor=document.createElement('div');
+  editor.className='mytask-editor';
+  const rte=document.createElement('div');
+  rte.className='mytask-rte';
+  rte.contentEditable=canEdit()?'true':'false';
+  rte.setAttribute('role','textbox');
+  rte.setAttribute('aria-multiline','true');
+  rte.dataset.placeholder='Task title…';
+  const initialHtml=task.html!=null&&task.html!==''
+    ?sanitizeMyTaskHtml(task.html)
+    :(task.title?task.title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'):'');
+  rte.innerHTML=initialHtml;
+  const toolbar=buildMyTaskRteToolbar(rte);
+  editor.append(toolbar,rte);
+
+  const persistRte=()=>{
+    const html=myTaskHtmlFromEditor(rte);
+    const title=myTaskPlainText(rte);
+    task.html=html;
+    task.title=title;
+    saveMyTasks();
+  };
+  rte.addEventListener('blur',persistRte);
+  bindMyTaskRteKeys(rte,{onSubmit:()=>rte.blur()});
 
   // priority chip
   const pChip=document.createElement('span');
@@ -4205,7 +4380,7 @@ function buildMyTaskRow(task){
   });
 
   actions.append(noteBtn,delBtn);
-  row.append(chk,titleEl,pChip,dueEl,actions);
+  row.append(chk,editor,pChip,dueEl,actions);
 
   // note row
   const noteRow=document.createElement('div');noteRow.className='mytask-note-row'+(task.note?' open':'');
