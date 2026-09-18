@@ -173,11 +173,21 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .roadmap-col-body{padding:10px;display:flex;flex-direction:column;gap:8px;flex:1}
 .roadmap-list{display:flex;flex-direction:column;gap:8px;min-height:24px;flex:1}
 .roadmap-card{
-  border-radius:8px;padding:10px 11px;border:1px solid transparent;
-  display:flex;align-items:flex-start;gap:8px;cursor:pointer;transition:box-shadow .12s,border-color .12s;
-  position:relative;
+  border-radius:8px;border:1px solid transparent;
+  display:flex;flex-direction:column;align-items:stretch;gap:0;
+  cursor:default;transition:box-shadow .12s,border-color .12s;position:relative;
 }
 .roadmap-card:hover{box-shadow:var(--shadow-sm);border-color:rgba(0,0,0,.06)}
+.roadmap-card.drop-target-nest{outline:1.5px dashed var(--accent);outline-offset:1px}
+.roadmap-card-row{
+  display:flex;align-items:flex-start;gap:6px;padding:10px 11px;cursor:pointer;position:relative;
+}
+.roadmap-drag{
+  cursor:grab;color:var(--text4);font-size:12px;line-height:1.3;margin-top:2px;
+  opacity:0;flex-shrink:0;user-select:none;
+}
+.roadmap-card:hover .roadmap-drag{opacity:1}
+.roadmap-drag:active{cursor:grabbing}
 .roadmap-card-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;margin-top:5px}
 .roadmap-card-main{flex:1;min-width:0}
 .roadmap-card-title{font-size:12px;font-weight:600;color:var(--text1);line-height:1.35}
@@ -186,14 +196,40 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
   flex-shrink:0;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
   color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;border-radius:4px;padding:2px 5px;margin-top:2px;
 }
-.roadmap-card-actions{display:none;position:absolute;top:6px;right:6px;gap:2px}
-.roadmap-card:hover .roadmap-card-actions{display:flex}
+.roadmap-card-actions{display:none;position:absolute;top:6px;right:6px;gap:2px;z-index:2}
+.roadmap-card-row:hover .roadmap-card-actions{display:flex}
 .roadmap-card-btn{
   width:22px;height:22px;border:none;border-radius:4px;background:rgba(255,255,255,.85);
   color:var(--text3);cursor:pointer;font-size:11px;line-height:1;
 }
 .roadmap-card-btn:hover{background:#fff;color:var(--text1)}
 .roadmap-card-btn.danger:hover{color:var(--red)}
+.roadmap-nest-toggle{
+  display:none;align-items:center;justify-content:center;gap:2px;
+  height:20px;min-width:28px;padding:0 5px;box-sizing:border-box;margin-top:1px;
+  border:1px solid #c7d2fe;border-radius:4px;background:#eef2ff;
+  color:var(--accent);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;
+  flex-shrink:0;line-height:1;
+}
+.roadmap-nest-toggle.show{display:inline-flex}
+.roadmap-nest-toggle:hover{background:#e0e7ff}
+.roadmap-nest{
+  margin:0 8px 8px 20px;padding-left:8px;border-left:1.5px solid var(--border2);
+  display:flex;flex-direction:column;gap:6px;
+}
+.roadmap-nest.is-collapsed{display:none!important}
+.roadmap-nest-list{display:flex;flex-direction:column;gap:6px;min-height:6px}
+.roadmap-nest .roadmap-card{box-shadow:none}
+.roadmap-nest .roadmap-card-title{font-size:11px}
+.roadmap-add-sub{
+  display:none;width:100%;padding:5px 8px;border:1px dashed var(--border2);border-radius:6px;
+  background:transparent;color:var(--text4);font-size:10px;font-weight:600;cursor:pointer;
+  font-family:'Inter',sans-serif;margin:0 8px 8px 20px;width:calc(100% - 28px);
+}
+.roadmap-card:hover > .roadmap-add-sub{display:block}
+body.view-only .roadmap-add-sub,
+body.view-only .roadmap-drag,
+body.view-only .roadmap-card-actions{display:none!important}
 .roadmap-add-btn{
   width:100%;margin-top:2px;padding:8px;border:1px dashed var(--border2);border-radius:8px;
   background:transparent;color:var(--text3);font-size:11px;font-weight:600;cursor:pointer;
@@ -206,8 +242,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .roadmap-card.cat-feature .roadmap-card-dot{background:#3b82f6}
 .roadmap-card.cat-platform .roadmap-card-dot{background:#8b5cf6}
 .roadmap-card.cat-reporting .roadmap-card-dot{background:#10b981}
-body.view-only .roadmap-add-btn,
-body.view-only .roadmap-card-actions{display:none!important}
+body.view-only .roadmap-add-btn{display:none!important}
 @media(max-width:1100px){
   .roadmap-board{grid-template-columns:repeat(2,minmax(200px,1fr))}
 }
@@ -472,10 +507,16 @@ body.view-only .roadmap-card-actions{display:none!important}
 
 .mytasks-wrap{max-width:720px}
 .mytasks-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}
-.mytask-add-row{display:flex;align-items:center;gap:7px;padding:10px 14px;background:var(--surface);border:1px solid var(--accent-md);border-radius:var(--radius);margin-bottom:12px;flex-wrap:wrap}
-.mytask-quick-input{flex:1;min-width:120px;padding:6px 9px;border:1px solid var(--border2);border-radius:5px;font-size:12px;font-family:'Inter',sans-serif;outline:none;color:var(--text1)}
+.mytask-add-row{display:flex;align-items:flex-start;gap:7px;padding:10px 14px;background:var(--surface);border:1px solid var(--accent-md);border-radius:var(--radius);margin-bottom:12px;flex-wrap:wrap}
+.mytask-quick-input{padding:6px 9px;border:1px solid var(--border2);border-radius:5px;font-size:12px;font-family:'Inter',sans-serif;outline:none;color:var(--text1)}
 .mytask-quick-input:focus{border-color:var(--accent)}
 .mytask-quick-sel{padding:6px 8px;border:1px solid var(--border2);border-radius:5px;font-size:12px;font-family:'Inter',sans-serif;outline:none;color:var(--text1);cursor:pointer}
+.mytask-quick-editor{
+  flex:1;min-width:180px;border:1px solid var(--border2);border-radius:6px;background:var(--surface);
+}
+.mytask-quick-editor:focus-within{border-color:var(--accent)}
+.mytask-quick-editor .mytask-rte-toolbar{display:flex}
+.mytask-add-meta{display:flex;align-items:center;gap:7px;flex-wrap:wrap}
 .mytask-group{margin-bottom:20px}
 .mytask-group-header{display:flex;align-items:center;gap:8px;margin-bottom:6px;cursor:pointer;user-select:none}
 .mytask-group-title{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.07em;color:var(--text3)}
@@ -485,21 +526,51 @@ body.view-only .roadmap-card-actions{display:none!important}
 .mytask-group.collapsed .mytask-group-toggle{transform:rotate(-90deg)}
 .mytask-group-body{display:flex;flex-direction:column;gap:2px}
 .mytask-group.collapsed .mytask-group-body{display:none}
-.mytask-row{display:flex;align-items:center;gap:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);transition:box-shadow .12s,border-color .12s}
+.mytask-row{display:flex;align-items:flex-start;gap:10px;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);transition:box-shadow .12s,border-color .12s}
 .mytask-row:hover{box-shadow:var(--shadow-sm);border-color:var(--border2)}
-.mytask-row.done-task .mytask-title{text-decoration:line-through;color:var(--text4)}
-.mytask-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:10px;color:transparent;transition:all .12s;background:var(--surface)}
+.mytask-row.done-task .mytask-rte{text-decoration:line-through;color:var(--text4)}
+.mytask-check{width:16px;height:16px;border-radius:4px;border:1.5px solid var(--border2);display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0;font-size:10px;color:transparent;transition:all .12s;background:var(--surface);margin-top:10px}
 .mytask-check.checked{background:var(--green);border-color:var(--green);color:#fff}
-.mytask-title{flex:1;font-size:12px;font-weight:500;color:var(--text1);outline:none;min-width:0}
-.mytask-title:focus{background:var(--surface2);border-radius:3px;padding:1px 4px;margin:-1px -4px}
-.priority-chip{font-size:10px;font-weight:500;padding:1px 6px;border-radius:8px;border:1px solid;flex-shrink:0}
+.mytask-editor{
+  flex:1;min-width:0;border:1px solid transparent;border-radius:6px;background:transparent;
+  transition:border-color .12s,background .12s,box-shadow .12s;
+}
+.mytask-editor:focus-within{
+  border-color:var(--accent-md);background:var(--surface);box-shadow:0 0 0 2px var(--accent-lt);
+}
+.mytask-rte-toolbar{
+  display:none;align-items:center;gap:2px;padding:4px 6px 0;flex-wrap:wrap;
+}
+.mytask-editor:focus-within .mytask-rte-toolbar,
+.mytask-quick-editor .mytask-rte-toolbar{display:flex}
+.mytask-rte-btn{
+  width:24px;height:24px;border:none;border-radius:4px;background:transparent;color:var(--text2);
+  cursor:pointer;font-size:12px;font-weight:700;font-family:'Inter',sans-serif;line-height:1;
+}
+.mytask-rte-btn:hover{background:var(--surface2);color:var(--text1)}
+.mytask-rte-btn.italic{font-style:italic;font-weight:600}
+.mytask-rte-btn.underline{text-decoration:underline}
+.mytask-rte{
+  min-height:28px;max-height:180px;overflow-y:auto;padding:6px 8px 8px;font-size:12px;font-weight:500;
+  color:var(--text1);outline:none;line-height:1.5;white-space:pre-wrap;word-break:break-word;
+}
+.mytask-rte:empty:before{content:attr(data-placeholder);color:var(--text4);font-weight:400;pointer-events:none}
+.mytask-rte b,.mytask-rte strong{font-weight:700}
+.mytask-rte i,.mytask-rte em{font-style:italic}
+.mytask-rte u{text-decoration:underline}
+.mytask-rte ul,.mytask-rte ol{margin:4px 0 4px 18px;padding:0}
+.mytask-rte li{margin:2px 0}
+.mytask-rte p{margin:0 0 4px}
+.mytask-rte p:last-child{margin-bottom:0}
+.mytask-quick-editor .mytask-rte{min-height:44px;max-height:140px}
+.priority-chip{font-size:10px;font-weight:500;padding:1px 6px;border-radius:8px;border:1px solid;flex-shrink:0;margin-top:8px}
 .p-high{color:#b91c1c;background:#fef2f2;border-color:#fecaca}
 .p-medium{color:#92400e;background:#fffbeb;border-color:#fde68a}
 .p-low{color:#166534;background:#f0fdf4;border-color:#bbf7d0}
 .p-none{color:var(--text4);background:var(--surface2);border-color:var(--border)}
-.mytask-due{font-size:10px;color:var(--text4);font-family:'JetBrains Mono',monospace;flex-shrink:0}
+.mytask-due{font-size:10px;color:var(--text4);font-family:'JetBrains Mono',monospace;flex-shrink:0;margin-top:10px}
 .mytask-due.overdue{color:var(--red)}
-.mytask-actions{display:flex;gap:4px;opacity:0;transition:opacity .12s;flex-shrink:0}
+.mytask-actions{display:flex;gap:4px;opacity:0;transition:opacity .12s;flex-shrink:0;margin-top:8px}
 .mytask-row:hover .mytask-actions{opacity:1}
 .mytask-del-btn,.mytask-note-btn{width:18px;height:18px;border-radius:3px;border:none;background:none;color:var(--text4);cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:11px}
 .mytask-del-btn:hover{background:var(--red-lt);color:var(--red)}
@@ -641,7 +712,8 @@ body.view-only .status-pill-arrow{display:none!important}
 body.view-only .status-pill{cursor:default;pointer-events:none}
 body.view-only .board-section-name{pointer-events:none;cursor:default}
 body.view-only .mytask-check{pointer-events:none;cursor:default}
-body.view-only .mytask-title{pointer-events:none}
+body.view-only .mytask-rte{pointer-events:none}
+body.view-only .mytask-rte-toolbar{display:none!important}
 
 /* ── Mobile menu button + backdrop ── */
 .mobile-menu-btn{
@@ -853,6 +925,7 @@ body.view-only .mytask-title{pointer-events:none}
     <div class="modal-body">
       <input type="hidden" id="rm-month" value="sep">
       <input type="hidden" id="rm-edit-id" value="">
+      <input type="hidden" id="rm-parent-id" value="">
       <div class="field-group"><div class="field-label">Title</div><input class="field-input" id="rm-title" type="text" placeholder="e.g. Cross-centre appointments"></div>
       <div class="field-group"><div class="field-label">Description</div><textarea class="field-textarea" id="rm-desc" placeholder="Short note…" style="min-height:64px"></textarea></div>
       <div class="field-row">
@@ -1156,16 +1229,27 @@ body.view-only .mytask-title{pointer-events:none}
 
         <!-- Quick add inline -->
         <div class="mytask-add-row" id="mytask-add-row" style="display:none">
-          <input class="mytask-quick-input" id="mytask-quick-title" type="text" placeholder="Task title…">
-          <select class="mytask-quick-sel" id="mytask-quick-priority">
-            <option value="none">No priority</option>
-            <option value="high">High</option>
-            <option value="medium">Medium</option>
-            <option value="low">Low</option>
-          </select>
-          <input class="mytask-quick-input" id="mytask-quick-due" type="date" style="max-width:130px">
-          <button class="btn-primary" style="font-size:11px;padding:5px 12px" onclick="saveMyTask()">Add</button>
-          <button class="btn-cancel" style="font-size:11px;padding:5px 10px" onclick="cancelMyTask()">Cancel</button>
+          <div class="mytask-quick-editor" id="mytask-quick-editor">
+            <div class="mytask-rte-toolbar" data-rte-toolbar>
+              <button type="button" class="mytask-rte-btn" data-cmd="bold" title="Bold (Ctrl+B)">B</button>
+              <button type="button" class="mytask-rte-btn italic" data-cmd="italic" title="Italic (Ctrl+I)">I</button>
+              <button type="button" class="mytask-rte-btn underline" data-cmd="underline" title="Underline (Ctrl+U)">U</button>
+              <button type="button" class="mytask-rte-btn" data-cmd="insertUnorderedList" title="Bullet list">•</button>
+              <button type="button" class="mytask-rte-btn" data-cmd="insertOrderedList" title="Numbered list">1.</button>
+            </div>
+            <div class="mytask-rte" id="mytask-quick-title" contenteditable="true" data-placeholder="Task title… Shift+Enter for new line" role="textbox" aria-multiline="true"></div>
+          </div>
+          <div class="mytask-add-meta">
+            <select class="mytask-quick-sel" id="mytask-quick-priority">
+              <option value="none">No priority</option>
+              <option value="high">High</option>
+              <option value="medium">Medium</option>
+              <option value="low">Low</option>
+            </select>
+            <input class="mytask-quick-input" id="mytask-quick-due" type="date" style="max-width:130px">
+            <button class="btn-primary" style="font-size:11px;padding:5px 12px" onclick="saveMyTask()">Add</button>
+            <button class="btn-cancel" style="font-size:11px;padding:5px 10px" onclick="cancelMyTask()">Cancel</button>
+          </div>
         </div>
 
         <!-- Groups -->
@@ -3495,19 +3579,27 @@ function currentRoadmap(){
   return roadmapByProject[p];
 }
 
+function normalizeRoadmapItem(item){
+  const rawKids=item&&item.children;
+  const kids=Array.isArray(rawKids)?rawKids:rawKids&&typeof rawKids==='object'?Object.values(rawKids):[];
+  return {
+    id:String(item.id||('RM-'+(roadmapItemCounter++))),
+    title:String(item.title||'').trim()||'Untitled',
+    desc:String(item.desc||item.description||'').trim(),
+    category:ROADMAP_CATS[item.category]?item.category:'feature',
+    live:!!item.live,
+    collapsed:item.collapsed!==false,
+    children:kids.filter(Boolean).map(normalizeRoadmapItem),
+  };
+}
+
 function normalizeRoadmapPayload(data){
   const out=emptyRoadmapMonths();
   if(!data||typeof data!=='object')return out;
   ROADMAP_MONTHS.forEach(m=>{
     const raw=data[m.id];
     const arr=Array.isArray(raw)?raw:raw&&typeof raw==='object'?Object.values(raw):[];
-    out[m.id]=arr.filter(Boolean).map(item=>({
-      id:String(item.id||('RM-'+(roadmapItemCounter++))),
-      title:String(item.title||'').trim()||'Untitled',
-      desc:String(item.desc||item.description||'').trim(),
-      category:ROADMAP_CATS[item.category]?item.category:'feature',
-      live:!!item.live,
-    }));
+    out[m.id]=arr.filter(Boolean).map(normalizeRoadmapItem);
   });
   return out;
 }
@@ -3545,25 +3637,55 @@ async function loadAllRoadmaps(){
   await loadRoadmapForProject('zenchat');
 }
 
-function findRoadmapItem(id){
-  const data=currentRoadmap();
-  for(const m of ROADMAP_MONTHS){
-    const hit=(data[m.id]||[]).find(t=>t.id===id);
+function findRoadmapItemInList(list,id){
+  if(!Array.isArray(list))return null;
+  for(const t of list){
+    if(t.id===id)return t;
+    const hit=findRoadmapItemInList(t.children,id);
     if(hit)return hit;
   }
   return null;
 }
 
-function openRoadmapModal(monthId,item){
+function findRoadmapItem(id){
+  const data=currentRoadmap();
+  for(const m of ROADMAP_MONTHS){
+    const hit=findRoadmapItemInList(data[m.id],id);
+    if(hit)return hit;
+  }
+  return null;
+}
+
+function removeRoadmapItemById(list,id){
+  if(!Array.isArray(list))return false;
+  const idx=list.findIndex(t=>t.id===id);
+  if(idx>=0){list.splice(idx,1);return true;}
+  for(const t of list){
+    if(removeRoadmapItemById(t.children,id))return true;
+  }
+  return false;
+}
+
+function openRoadmapModal(monthId,item,parentId){
   if(!canEdit()&&!item)return;
   const month=ROADMAP_MONTHS.find(m=>m.id===monthId)||ROADMAP_MONTHS[0];
+  const parent=parentId?findRoadmapItem(parentId):null;
   document.getElementById('rm-month').value=month.id;
   document.getElementById('rm-edit-id').value=item?.id||'';
-  document.getElementById('rm-modal-title').textContent=item?'Edit roadmap item':'Add roadmap item';
-  document.getElementById('rm-modal-sub').textContent=month.label+' · '+month.quarter;
+  document.getElementById('rm-parent-id').value=parentId||'';
+  if(item){
+    document.getElementById('rm-modal-title').textContent='Edit roadmap item';
+    document.getElementById('rm-modal-sub').textContent=month.label+' · '+month.quarter;
+  }else if(parent){
+    document.getElementById('rm-modal-title').textContent='Add subtask';
+    document.getElementById('rm-modal-sub').textContent='Under · '+parent.title;
+  }else{
+    document.getElementById('rm-modal-title').textContent='Add roadmap item';
+    document.getElementById('rm-modal-sub').textContent=month.label+' · '+month.quarter;
+  }
   document.getElementById('rm-title').value=item?.title||'';
   document.getElementById('rm-desc').value=item?.desc||'';
-  document.getElementById('rm-category').value=item?.category||'feature';
+  document.getElementById('rm-category').value=item?.category||parent?.category||'feature';
   document.getElementById('rm-live').value=item?.live?'1':'0';
   const del=document.getElementById('rm-delete');
   del.style.display=item&&canEdit()?'':'none';
@@ -3578,12 +3700,94 @@ function openRoadmapModal(monthId,item){
 
 function closeRoadmapModal(){roadmapModal.classList.remove('open');}
 
+function ensureRoadmapNest(card){
+  let nest=card.querySelector(':scope > .roadmap-nest');
+  if(nest)return nest;
+  nest=document.createElement('div');
+  nest.className='roadmap-nest is-collapsed';
+  const list=document.createElement('div');
+  list.className='roadmap-nest-list';
+  nest.appendChild(list);
+  const addSub=card.querySelector(':scope > .roadmap-add-sub');
+  if(addSub)card.insertBefore(nest,addSub);
+  else card.appendChild(nest);
+  return nest;
+}
+
+function roadmapChildCount(card){
+  const list=card.querySelector(':scope > .roadmap-nest > .roadmap-nest-list');
+  if(!list)return 0;
+  return [...list.children].filter(c=>c.classList.contains('roadmap-card')).length;
+}
+
+function refreshRoadmapNestChrome(card){
+  if(!card||!card.classList.contains('roadmap-card'))return;
+  const nest=card.querySelector(':scope > .roadmap-nest');
+  const row=card.querySelector(':scope > .roadmap-card-row');
+  if(!row)return;
+  let btn=row.querySelector(':scope > .roadmap-nest-toggle');
+  const count=roadmapChildCount(card);
+  if(!btn){
+    btn=document.createElement('button');
+    btn.type='button';
+    btn.className='roadmap-nest-toggle';
+    btn.addEventListener('click',e=>{
+      e.stopPropagation();
+      const n=card.querySelector(':scope > .roadmap-nest');
+      if(!n||!roadmapChildCount(card))return;
+      n.classList.toggle('is-collapsed');
+      refreshRoadmapNestChrome(card);
+      // Persist collapse without full re-render
+      const item=findRoadmapItem(card.dataset.id);
+      if(item){item.collapsed=n.classList.contains('is-collapsed');saveRoadmap();}
+    });
+    const actions=row.querySelector('.roadmap-card-actions');
+    if(actions)row.insertBefore(btn,actions);
+    else row.appendChild(btn);
+  }
+  if(count>0){
+    btn.classList.add('show');
+    const collapsed=!nest||nest.classList.contains('is-collapsed');
+    btn.textContent=(collapsed?'▶ ':'▼ ')+count;
+    btn.title=collapsed?'Show subtasks':'Hide subtasks';
+  }else{
+    btn.classList.remove('show');
+    btn.textContent='';
+  }
+}
+
+function serializeRoadmapCard(card){
+  const nest=card.querySelector(':scope > .roadmap-nest');
+  const list=nest?nest.querySelector(':scope > .roadmap-nest-list'):null;
+  const children=list
+    ?[...list.children].filter(c=>c.classList.contains('roadmap-card')).map(serializeRoadmapCard)
+    :[];
+  const existing=findRoadmapItem(card.dataset.id);
+  return {
+    id:card.dataset.id,
+    title:card.querySelector(':scope > .roadmap-card-row .roadmap-card-title')?.textContent?.trim()
+      ||card.querySelector('.roadmap-card-title')?.textContent?.trim()||existing?.title||'',
+    desc:card.querySelector(':scope > .roadmap-card-row .roadmap-card-desc')?.textContent?.trim()
+      ||existing?.desc||'',
+    category:card.dataset.category||existing?.category||'feature',
+    live:!!card.querySelector(':scope > .roadmap-card-row .roadmap-card-live'),
+    collapsed:!nest||nest.classList.contains('is-collapsed'),
+    children,
+  };
+}
+
 function buildRoadmapCard(monthId,item){
   const cat=ROADMAP_CATS[item.category]||ROADMAP_CATS.feature;
   const card=document.createElement('div');
   card.className='roadmap-card '+cat.cls;
   card.dataset.id=item.id;
-  card.innerHTML=
+  card.dataset.category=item.category||'feature';
+  card.dataset.month=monthId;
+
+  const row=document.createElement('div');
+  row.className='roadmap-card-row';
+  row.innerHTML=
+    '<span class="roadmap-drag" title="Drag">⠿</span>'+
     '<span class="roadmap-card-dot"></span>'+
     '<div class="roadmap-card-main">'+
       '<div class="roadmap-card-title">'+escapeHtml(item.title)+'</div>'+
@@ -3594,22 +3798,49 @@ function buildRoadmapCard(monthId,item){
       '<button type="button" class="roadmap-card-btn" data-rm-edit title="Edit">✏</button>'+
       '<button type="button" class="roadmap-card-btn danger" data-rm-del title="Delete">🗑</button>'+
     '</div>';
-  card.addEventListener('click',e=>{
-    if(e.target.closest('[data-rm-del]')||e.target.closest('[data-rm-edit]'))return;
+
+  row.addEventListener('click',e=>{
+    if(e.target.closest('[data-rm-del],[data-rm-edit],.roadmap-drag,.roadmap-nest-toggle'))return;
     openRoadmapModal(monthId,item);
   });
-  card.querySelector('[data-rm-edit]')?.addEventListener('click',e=>{
+  row.querySelector('[data-rm-edit]')?.addEventListener('click',e=>{
     e.stopPropagation();
     openRoadmapModal(monthId,item);
   });
-  card.querySelector('[data-rm-del]')?.addEventListener('click',e=>{
+  row.querySelector('[data-rm-del]')?.addEventListener('click',e=>{
     e.stopPropagation();
     if(!canEdit())return;
     const data=currentRoadmap();
-    data[monthId]=data[monthId].filter(t=>t.id!==item.id);
+    removeRoadmapItemById(data[monthId],item.id);
     renderRoadmap();
     saveRoadmap();
   });
+
+  card.appendChild(row);
+
+  const kids=Array.isArray(item.children)?item.children:[];
+  if(kids.length){
+    const nest=document.createElement('div');
+    nest.className='roadmap-nest'+(item.collapsed!==false?' is-collapsed':'');
+    const nestList=document.createElement('div');
+    nestList.className='roadmap-nest-list';
+    kids.forEach(child=>nestList.appendChild(buildRoadmapCard(monthId,child)));
+    nest.appendChild(nestList);
+    card.appendChild(nest);
+  }
+
+  const addSub=document.createElement('button');
+  addSub.type='button';
+  addSub.className='roadmap-add-sub';
+  addSub.textContent='＋ Add subtask';
+  addSub.addEventListener('click',e=>{
+    e.stopPropagation();
+    if(!canEdit())return;
+    openRoadmapModal(monthId,null,item.id);
+  });
+  card.appendChild(addSub);
+
+  refreshRoadmapNestChrome(card);
   return card;
 }
 
@@ -3617,18 +3848,68 @@ function syncRoadmapFromDom(board){
   const next=emptyRoadmapMonths();
   board.querySelectorAll('.roadmap-list').forEach(l=>{
     const mid=l.dataset.month;
-    next[mid]=[...l.querySelectorAll('.roadmap-card')].map(card=>{
-      return findRoadmapItem(card.dataset.id)||{
-        id:card.dataset.id,
-        title:card.querySelector('.roadmap-card-title')?.textContent||'',
-        desc:card.querySelector('.roadmap-card-desc')?.textContent||'',
-        category:'feature',
-        live:!!card.querySelector('.roadmap-card-live'),
-      };
-    });
+    next[mid]=[...l.children]
+      .filter(c=>c.classList.contains('roadmap-card'))
+      .map(serializeRoadmapCard);
   });
   const p=isProject(activeProject)?activeProject:'smartbot';
   roadmapByProject[p]=next;
+}
+
+let rmNestTarget=null;
+function makeRoadmapSortable(list){
+  if(!list||!window.Sortable)return;
+  if(list._rmSortable){
+    list._rmSortable.option('disabled',!canEdit());
+    return;
+  }
+  list._rmSortable=Sortable.create(list,{
+    group:{name:'roadmap-nest-'+activeProject,pull:true,put:true},
+    handle:'.roadmap-drag',
+    animation:140,
+    disabled:!canEdit(),
+    ghostClass:'sortable-ghost',
+    chosenClass:'sortable-chosen',
+    dragClass:'sortable-drag',
+    onStart(){rmNestTarget=null;},
+    onMove(evt){
+      if(!canEdit())return false;
+      document.querySelectorAll('.roadmap-card.drop-target-nest').forEach(el=>el.classList.remove('drop-target-nest'));
+      const oc=evt.related?.classList.contains('roadmap-card')?evt.related:null;
+      if(oc&&oc!==evt.dragged&&!oc.contains(evt.dragged)){
+        const rect=oc.getBoundingClientRect();
+        const my=evt.originalEvent?.clientY||0;
+        if(my<rect.top+rect.height*.45){
+          oc.classList.add('drop-target-nest');
+          rmNestTarget=oc;
+          return false;
+        }
+      }
+      rmNestTarget=null;
+      return true;
+    },
+    onEnd(evt){
+      document.querySelectorAll('.roadmap-card.drop-target-nest').forEach(el=>el.classList.remove('drop-target-nest'));
+      if(!canEdit())return;
+      if(rmNestTarget&&evt.item&&rmNestTarget!==evt.item&&!rmNestTarget.contains(evt.item)){
+        const nest=ensureRoadmapNest(rmNestTarget);
+        const nl=nest.querySelector(':scope > .roadmap-nest-list');
+        if(nl&&!nl.contains(evt.item)){
+          evt.item.parentNode?.removeChild(evt.item);
+          nl.appendChild(evt.item);
+          nest.classList.remove('is-collapsed');
+          makeRoadmapSortable(nl);
+        }
+        rmNestTarget=null;
+      }
+      const board=document.getElementById('roadmap-board');
+      if(board){
+        syncRoadmapFromDom(board);
+        renderRoadmap();
+        saveRoadmap();
+      }
+    },
+  });
 }
 
 function renderRoadmap(){
@@ -3655,16 +3936,9 @@ function renderRoadmap(){
     items.forEach(item=>list.appendChild(buildRoadmapCard(month.id,item)));
     col.querySelector('[data-rm-add]')?.addEventListener('click',()=>openRoadmapModal(month.id,null));
     board.appendChild(col);
-    if(canEdit()&&window.Sortable){
-      Sortable.create(list,{
-        group:{name:'roadmap-'+activeProject,pull:true,put:true},
-        animation:140,
-        onEnd(){
-          syncRoadmapFromDom(board);
-          renderRoadmap();
-          saveRoadmap();
-        },
-      });
+    if(canEdit()){
+      makeRoadmapSortable(list);
+      list.querySelectorAll('.roadmap-nest-list').forEach(makeRoadmapSortable);
     }
   });
 }
@@ -3677,18 +3951,38 @@ document.getElementById('rm-save')?.addEventListener('click',()=>{
   if(!title)return;
   const monthId=document.getElementById('rm-month').value;
   const editId=document.getElementById('rm-edit-id').value;
-  const payload={
+  const parentId=document.getElementById('rm-parent-id').value;
+  const payload=normalizeRoadmapItem({
     id:editId||('RM-'+(Date.now())+'-'+(roadmapItemCounter++)),
     title,
     desc:document.getElementById('rm-desc').value.trim(),
     category:document.getElementById('rm-category').value||'feature',
     live:document.getElementById('rm-live').value==='1',
-  };
+    collapsed:true,
+    children:editId?(findRoadmapItem(editId)?.children||[]):[],
+  });
   const data=currentRoadmap();
   if(!Array.isArray(data[monthId]))data[monthId]=[];
   if(editId){
-    ROADMAP_MONTHS.forEach(m=>{data[m.id]=(data[m.id]||[]).filter(t=>t.id!==editId);});
-    data[monthId].push(payload);
+    const existing=findRoadmapItem(editId);
+    if(existing){
+      existing.title=payload.title;
+      existing.desc=payload.desc;
+      existing.category=payload.category;
+      existing.live=payload.live;
+      // keep children + collapsed
+    }else{
+      data[monthId].push(payload);
+    }
+  }else if(parentId){
+    const parent=findRoadmapItem(parentId);
+    if(parent){
+      if(!Array.isArray(parent.children))parent.children=[];
+      parent.children.push(payload);
+      parent.collapsed=false;
+    }else{
+      data[monthId].push(payload);
+    }
   }else{
     data[monthId].push(payload);
   }
@@ -3701,7 +3995,7 @@ document.getElementById('rm-delete')?.addEventListener('click',()=>{
   const editId=document.getElementById('rm-edit-id').value;
   if(!editId)return;
   const data=currentRoadmap();
-  ROADMAP_MONTHS.forEach(m=>{data[m.id]=(data[m.id]||[]).filter(t=>t.id!==editId);});
+  ROADMAP_MONTHS.forEach(m=>removeRoadmapItemById(data[m.id],editId));
   closeRoadmapModal();
   renderRoadmap();
   saveRoadmap();
@@ -3812,10 +4106,125 @@ function openMyTaskAdd(){
   const today=new Date();
   document.getElementById('mytask-quick-due').value=today.toISOString().split('T')[0];
   document.getElementById('mytask-quick-priority').value='none';
-  document.getElementById('mytask-quick-title').value='';
-  setTimeout(()=>document.getElementById('mytask-quick-title').focus(),50);
+  const rte=document.getElementById('mytask-quick-title');
+  rte.innerHTML='';
+  setTimeout(()=>rte.focus(),50);
 }
-function cancelMyTask(){document.getElementById('mytask-add-row').style.display='none';}
+function cancelMyTask(){
+  document.getElementById('mytask-add-row').style.display='none';
+  const rte=document.getElementById('mytask-quick-title');
+  if(rte)rte.innerHTML='';
+}
+
+/* ── My Tasks rich text ── */
+const MYTASK_RTE_ALLOWED=new Set(['B','STRONG','I','EM','U','BR','DIV','P','UL','OL','LI','SPAN']);
+function myTaskPlainText(htmlOrEl){
+  const el=typeof htmlOrEl==='string'
+    ?Object.assign(document.createElement('div'),{innerHTML:htmlOrEl})
+    :htmlOrEl;
+  return (el.innerText||el.textContent||'').replace(/\u00a0/g,' ').replace(/\n{3,}/g,'\n\n').trim();
+}
+function sanitizeMyTaskHtml(html){
+  const wrap=document.createElement('div');
+  wrap.innerHTML=html||'';
+  (function walk(node){
+    const kids=[...node.childNodes];
+    kids.forEach(child=>{
+      if(child.nodeType===Node.TEXT_NODE)return;
+      if(child.nodeType!==Node.ELEMENT_NODE){child.remove();return;}
+      const tag=child.tagName.toUpperCase();
+      if(!MYTASK_RTE_ALLOWED.has(tag)){
+        while(child.firstChild)node.insertBefore(child.firstChild,child);
+        child.remove();
+        return;
+      }
+      [...child.attributes].forEach(a=>child.removeAttribute(a.name));
+      walk(child);
+    });
+  })(wrap);
+  return wrap.innerHTML;
+}
+function myTaskHtmlFromEditor(el){
+  return sanitizeMyTaskHtml(el.innerHTML);
+}
+function insertMyTaskLineBreak(){
+  if(document.execCommand('insertLineBreak'))return;
+  if(document.execCommand('insertHTML',false,'<br>'))return;
+  const sel=window.getSelection();
+  if(!sel||!sel.rangeCount)return;
+  const range=sel.getRangeAt(0);
+  range.deleteContents();
+  const br=document.createElement('br');
+  range.insertNode(br);
+  range.setStartAfter(br);
+  range.collapse(true);
+  sel.removeAllRanges();
+  sel.addRange(range);
+}
+function buildMyTaskRteToolbar(editorEl){
+  const bar=document.createElement('div');
+  bar.className='mytask-rte-toolbar';
+  const cmds=[
+    {cmd:'bold',label:'B',title:'Bold (Ctrl+B)'},
+    {cmd:'italic',label:'I',title:'Italic (Ctrl+I)',cls:'italic'},
+    {cmd:'underline',label:'U',title:'Underline (Ctrl+U)',cls:'underline'},
+    {cmd:'insertUnorderedList',label:'•',title:'Bullet list'},
+    {cmd:'insertOrderedList',label:'1.',title:'Numbered list'},
+  ];
+  cmds.forEach(({cmd,label,title,cls})=>{
+    const btn=document.createElement('button');
+    btn.type='button';
+    btn.className='mytask-rte-btn'+(cls?' '+cls:'');
+    btn.title=title;
+    btn.textContent=label;
+    btn.addEventListener('mousedown',e=>{
+      e.preventDefault();
+      editorEl.focus();
+      document.execCommand(cmd,false,null);
+    });
+    bar.appendChild(btn);
+  });
+  return bar;
+}
+function bindMyTaskRteKeys(el,{onSubmit}={}){
+  el.addEventListener('keydown',e=>{
+    if(e.key==='Enter'){
+      if(e.ctrlKey||e.metaKey){
+        e.preventDefault();
+        if(onSubmit)onSubmit();
+        else el.blur();
+        return;
+      }
+      // Enter and Shift+Enter both insert a soft line break (rich multiline)
+      e.preventDefault();
+      insertMyTaskLineBreak();
+      return;
+    }
+    if((e.ctrlKey||e.metaKey)&&!e.altKey){
+      const k=e.key.toLowerCase();
+      if(k==='b'){e.preventDefault();document.execCommand('bold');}
+      else if(k==='i'){e.preventDefault();document.execCommand('italic');}
+      else if(k==='u'){e.preventDefault();document.execCommand('underline');}
+    }
+  });
+}
+function initMyTaskQuickRte(){
+  const rte=document.getElementById('mytask-quick-title');
+  if(!rte||rte.dataset.rteBound)return;
+  rte.dataset.rteBound='1';
+  bindMyTaskRteKeys(rte,{onSubmit:()=>saveMyTask()});
+  const bar=document.querySelector('#mytask-quick-editor [data-rte-toolbar]');
+  if(bar){
+    bar.querySelectorAll('[data-cmd]').forEach(btn=>{
+      btn.addEventListener('mousedown',e=>{
+        e.preventDefault();
+        rte.focus();
+        document.execCommand(btn.dataset.cmd,false,null);
+      });
+    });
+  }
+}
+initMyTaskQuickRte();
 
 /* ── Keyboard shortcuts ── */
 function getOpenModal(){
@@ -3859,7 +4268,7 @@ document.addEventListener('keydown',e=>{
   }
 
   // Enter — trigger primary Save/Add on open task (and other) modals
-  // Textareas need Ctrl/Cmd+Enter so newlines still work
+  // Textareas / contenteditable need Ctrl/Cmd+Enter so newlines still work
   if(e.key==='Enter'&&getOpenModal()){
     if(e.target&&e.target.closest('button,a,[contenteditable="true"]'))return;
     const tag=(e.target&&e.target.tagName||'').toLowerCase();
@@ -3867,18 +4276,12 @@ document.addEventListener('keydown',e=>{
     if(clickModalPrimarySave()){e.preventDefault();return;}
   }
 
-  // Enter — save quick My Task title
-  if(e.key==='Enter'&&document.activeElement===document.getElementById('mytask-quick-title')){
-    e.preventDefault();
-    saveMyTask();
-    return;
-  }
-
   // Ctrl/Cmd+N — new task on the active sprint board
   if((e.ctrlKey||e.metaKey)&&!e.shiftKey&&!e.altKey&&(e.key==='n'||e.key==='N')){
     if(!canEdit())return;
     if(getOpenModal())return;
     if(document.activeElement&&['INPUT','TEXTAREA','SELECT'].includes(document.activeElement.tagName))return;
+    if(document.activeElement&&document.activeElement.isContentEditable)return;
     const boardPage=document.getElementById('page-board');
     if(!boardPage||!boardPage.classList.contains('active'))return;
     e.preventDefault();
@@ -3889,12 +4292,14 @@ document.addEventListener('keydown',e=>{
 });
 
 function saveMyTask(){
-  const title=document.getElementById('mytask-quick-title').value.trim();
+  const rte=document.getElementById('mytask-quick-title');
+  const html=myTaskHtmlFromEditor(rte);
+  const title=myTaskPlainText(rte);
   if(!title)return;
   const priority=document.getElementById('mytask-quick-priority').value;
   const due=document.getElementById('mytask-quick-due').value;
   myTaskCounter++;
-  myTasks.push({id:'MT-'+myTaskCounter,title,priority,due,done:false,note:''});
+  myTasks.push({id:'MT-'+myTaskCounter,title,html,priority,due,done:false,note:''});
   saveMyTasks();
   renderMyTasks();
   cancelMyTask();
@@ -3915,19 +4320,35 @@ function buildMyTaskRow(task){
     task.done=!task.done;
     chk.classList.toggle('checked',task.done);
     chk.textContent=task.done?'✓':'';
-    titleEl.classList.toggle('done-task',task.done);
     row.classList.toggle('done-task',task.done);
     saveMyTasks();updateMyTasksBadge();
-    // re-render to move to correct group
     setTimeout(()=>renderMyTasks(),300);
   });
 
-  const titleEl=document.createElement('div');
-  titleEl.className='mytask-title';
-  titleEl.textContent=task.title;
-  titleEl.contentEditable='true';
-  titleEl.addEventListener('blur',()=>{task.title=titleEl.textContent.trim();saveMyTasks();});
-  titleEl.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();titleEl.blur();}});
+  const editor=document.createElement('div');
+  editor.className='mytask-editor';
+  const rte=document.createElement('div');
+  rte.className='mytask-rte';
+  rte.contentEditable=canEdit()?'true':'false';
+  rte.setAttribute('role','textbox');
+  rte.setAttribute('aria-multiline','true');
+  rte.dataset.placeholder='Task title…';
+  const initialHtml=task.html!=null&&task.html!==''
+    ?sanitizeMyTaskHtml(task.html)
+    :(task.title?task.title.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/\n/g,'<br>'):'');
+  rte.innerHTML=initialHtml;
+  const toolbar=buildMyTaskRteToolbar(rte);
+  editor.append(toolbar,rte);
+
+  const persistRte=()=>{
+    const html=myTaskHtmlFromEditor(rte);
+    const title=myTaskPlainText(rte);
+    task.html=html;
+    task.title=title;
+    saveMyTasks();
+  };
+  rte.addEventListener('blur',persistRte);
+  bindMyTaskRteKeys(rte,{onSubmit:()=>rte.blur()});
 
   // priority chip
   const pChip=document.createElement('span');
@@ -3959,7 +4380,7 @@ function buildMyTaskRow(task){
   });
 
   actions.append(noteBtn,delBtn);
-  row.append(chk,titleEl,pChip,dueEl,actions);
+  row.append(chk,editor,pChip,dueEl,actions);
 
   // note row
   const noteRow=document.createElement('div');noteRow.className='mytask-note-row'+(task.note?' open':'');
