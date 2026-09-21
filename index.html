@@ -196,23 +196,27 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
   flex-shrink:0;font-size:9px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;
   color:#15803d;background:#dcfce7;border:1px solid #bbf7d0;border-radius:4px;padding:2px 5px;margin-top:2px;
 }
-.roadmap-card-actions{display:none;position:absolute;top:6px;right:6px;gap:2px;z-index:2}
-.roadmap-card-row:hover .roadmap-card-actions{display:flex}
-.roadmap-card-btn{
-  width:22px;height:22px;border:none;border-radius:4px;background:rgba(255,255,255,.85);
-  color:var(--text3);cursor:pointer;font-size:11px;line-height:1;
+.roadmap-card-actions{
+  display:flex;align-items:center;gap:3px;flex-shrink:0;margin-top:1px;min-height:22px;
 }
-.roadmap-card-btn:hover{background:#fff;color:var(--text1)}
+.roadmap-card-btn{
+  width:22px;height:22px;border:none;border-radius:4px;background:transparent;
+  color:var(--text3);cursor:pointer;font-size:11px;line-height:1;
+  opacity:0;transition:opacity .12s,background .12s,color .12s;
+}
+.roadmap-card-row:hover .roadmap-card-btn{opacity:1}
+.roadmap-card-btn:hover{background:rgba(255,255,255,.9);color:var(--text1)}
 .roadmap-card-btn.danger:hover{color:var(--red)}
 .roadmap-nest-toggle{
   display:none;align-items:center;justify-content:center;gap:2px;
-  height:20px;min-width:28px;padding:0 5px;box-sizing:border-box;margin-top:1px;
-  border:1px solid #c7d2fe;border-radius:4px;background:#eef2ff;
+  height:22px;min-width:32px;padding:0 7px;box-sizing:border-box;
+  border:1px solid #c7d2fe;border-radius:5px;background:#eef2ff;
   color:var(--accent);font-size:10px;font-weight:600;cursor:pointer;font-family:inherit;
-  flex-shrink:0;line-height:1;
+  flex-shrink:0;line-height:1;opacity:1;
 }
 .roadmap-nest-toggle.show{display:inline-flex}
-.roadmap-nest-toggle:hover{background:#e0e7ff}
+.roadmap-nest-toggle:hover{background:#e0e7ff;border-color:#a5b4fc}
+.roadmap-nest-toggle.is-collapsed{opacity:.9}
 .roadmap-nest{
   margin:0 8px 8px 20px;padding-left:8px;border-left:1.5px solid var(--border2);
   display:flex;flex-direction:column;gap:6px;
@@ -229,7 +233,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .roadmap-card:hover > .roadmap-add-sub{display:block}
 body.view-only .roadmap-add-sub,
 body.view-only .roadmap-drag,
-body.view-only .roadmap-card-actions{display:none!important}
+body.view-only .roadmap-card-btn{display:none!important}
 .roadmap-add-btn{
   width:100%;margin-top:2px;padding:8px;border:1px dashed var(--border2);border-radius:8px;
   background:transparent;color:var(--text3);font-size:11px;font-weight:600;cursor:pointer;
@@ -3729,7 +3733,8 @@ function refreshRoadmapNestChrome(card){
   const nest=card.querySelector(':scope > .roadmap-nest');
   const row=card.querySelector(':scope > .roadmap-card-row');
   if(!row)return;
-  let btn=row.querySelector(':scope > .roadmap-nest-toggle');
+  const actions=row.querySelector(':scope > .roadmap-card-actions');
+  let btn=row.querySelector('.roadmap-nest-toggle');
   const count=roadmapChildCount(card);
   if(!btn){
     btn=document.createElement('button');
@@ -3741,21 +3746,26 @@ function refreshRoadmapNestChrome(card){
       if(!n||!roadmapChildCount(card))return;
       n.classList.toggle('is-collapsed');
       refreshRoadmapNestChrome(card);
-      // Persist collapse without full re-render
       const item=findRoadmapItem(card.dataset.id);
       if(item){item.collapsed=n.classList.contains('is-collapsed');saveRoadmap();}
     });
-    const actions=row.querySelector('.roadmap-card-actions');
-    if(actions)row.insertBefore(btn,actions);
-    else row.appendChild(btn);
+    if(actions){
+      const editBtn=actions.querySelector('[data-rm-edit]');
+      if(editBtn)actions.insertBefore(btn,editBtn);
+      else actions.prepend(btn);
+    }else{
+      row.appendChild(btn);
+    }
   }
   if(count>0){
     btn.classList.add('show');
     const collapsed=!nest||nest.classList.contains('is-collapsed');
     btn.textContent=(collapsed?'▶ ':'▼ ')+count;
     btn.title=collapsed?'Show subtasks':'Hide subtasks';
+    btn.classList.toggle('is-collapsed',collapsed);
   }else{
     btn.classList.remove('show');
+    btn.classList.remove('is-collapsed');
     btn.textContent='';
   }
 }
