@@ -165,7 +165,7 @@ body{font-family:'Inter',sans-serif;background:var(--bg);color:var(--text1);min-
 .roadmap-legend-item{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:500;color:var(--text2)}
 .roadmap-legend-dot{width:10px;height:10px;border-radius:3px;flex-shrink:0}
 .roadmap-board{
-  display:grid;grid-template-columns:repeat(4,minmax(200px,1fr));gap:14px;align-items:start;
+  display:grid;grid-template-columns:repeat(3,minmax(200px,1fr));gap:14px;align-items:start;
 }
 .roadmap-col{
   background:var(--surface);border:1px solid var(--border);border-radius:12px;
@@ -1753,6 +1753,22 @@ function showPage(id,btn,project){
 }
 
 /* ── Helpers ── */
+function fbList(val){
+  if(val==null)return[];
+  if(Array.isArray(val))return val.filter(v=>v!=null);
+  if(typeof val==='object'){
+    return Object.keys(val)
+      .filter(k=>k!=='length')
+      .sort((a,b)=>{
+        const na=Number(a),nb=Number(b);
+        if(Number.isFinite(na)&&Number.isFinite(nb))return na-nb;
+        return String(a).localeCompare(String(b));
+      })
+      .map(k=>val[k])
+      .filter(v=>v!=null);
+  }
+  return[];
+}
 function fmt(d){const dt=new Date(d+'T00:00:00');return dt.toLocaleDateString('en-GB',{day:'numeric',month:'short'});}
 function daysLeft(e){const now=new Date();now.setHours(0,0,0,0);const end=new Date(e+'T00:00:00');return Math.max(0,Math.round((end-now)/864e5));}
 function sprintPct(s,e){const st=new Date(s+'T00:00:00'),en=new Date(e+'T00:00:00'),now=new Date();now.setHours(0,0,0,0);return en>st?Math.round(Math.min(Math.max(now-st,0),en-st)/(en-st)*100):0;}
@@ -2075,8 +2091,13 @@ async function loadBoardsMeta(){
       data=JSON.parse(data);
       if(typeof data==='string')data=JSON.parse(data);
     }
-    if(Array.isArray(data.boards)&&data.boards.length){
-      sprints=data.boards.map(b=>({
+    let rawBoards=data.boards;
+    if(typeof rawBoards==='string'){
+      try{rawBoards=JSON.parse(rawBoards);}catch(e){}
+    }
+    const listed=fbList(rawBoards||data);
+    if(listed.length&&listed.some(b=>b&&b.id)){
+      sprints=listed.filter(b=>b&&b.id).map(b=>({
         id:b.id,
         kind:b.kind||'sprint',
         project:isProject(b.project)?b.project:null,
@@ -3780,14 +3801,50 @@ function normalizeRoadmapItem(item){
     children:kids.filter(Boolean).map(normalizeRoadmapItem),
   };
 }
+function monthKeyAliases(def){
+  const mm=String(def.month+1).padStart(2,'0');
+  const short=ROADMAP_MONTH_NAMES[def.month].slice(0,3).toLowerCase();
+  return [def.id, short, ROADMAP_MONTH_NAMES[def.month].toLowerCase(), String(def.month+1), mm];
+}
+function itemsFromColumn(raw){
+  return fbList(raw).filter(Boolean).map(normalizeRoadmapItem);
+}
 function normalizeBoardColumns(board,rawColumns){
   const defs=roadmapMonthDefs(board);
   const cols=emptyRoadmapColumns(defs);
   const src=rawColumns&&typeof rawColumns==='object'?rawColumns:{};
+  const used=new Set();
   defs.forEach(m=>{
-    const raw=src[m.id];
-    const arr=Array.isArray(raw)?raw:raw&&typeof raw==='object'?Object.values(raw):[];
-    cols[m.id]=arr.filter(Boolean).map(normalizeRoadmapItem);
+    const seen=new Set();
+    const merged=[];
+    monthKeyAliases(m).forEach(k=>{
+      if(!(k in src)||used.has(k))return;
+      used.add(k);
+      itemsFromColumn(src[k]).forEach(it=>{
+        if(seen.has(it.id))return;
+        seen.add(it.id);
+        merged.push(it);
+      });
+    });
+    cols[m.id]=merged;
+  });
+  // Keep leftover YYYY-MM / legacy month buckets so items are not dropped
+  Object.keys(src).forEach(k=>{
+    if(used.has(k)||k==='boards'||k==='activeId'||k==='columns')return;
+    const leftover=itemsFromColumn(src[k]);
+    if(!leftover.length)return;
+    let target=null;
+    const ym=k.match(/^(\d{4})-(\d{2})$/);
+    if(ym){
+      const mon=Number(ym[2])-1;
+      target=defs.find(d=>d.month===mon)||defs[0];
+    }else{
+      const legacy=LEGACY_ROADMAP_MONTHS.find(m=>m.id===k||m.label.toLowerCase()===k.toLowerCase());
+      target=legacy?defs.find(d=>d.month===legacy.month)||defs[0]:defs[0];
+    }
+    if(!target)return;
+    const have=new Set(cols[target.id].map(i=>i.id));
+    leftover.forEach(it=>{if(!have.has(it.id))cols[target.id].push(it);});
   });
   return cols;
 }
@@ -3803,39 +3860,82 @@ function normalizeRoadmapBoard(raw,idx){
   board.columns=normalizeBoardColumns(board,raw.columns||raw.data||{});
   return board;
 }
+function collectMonthBuckets(src){
+  const buckets={};
+  if(!src||typeof src!=='object')return buckets;
+  Object.keys(src).forEach(k=>{
+    if(['boards','activeId','name','id','startYear','startMonth','columns','data'].includes(k))return;
+    const items=itemsFromColumn(src[k]);
+    if(!items.length)return;
+    const legacy=LEGACY_ROADMAP_MONTHS.find(m=>m.id===k||m.label.toLowerCase()===String(k).toLowerCase());
+    const id=legacy?('2025-'+String(legacy.month+1).padStart(2,'0')):(/^\d{4}-\d{2}$/.test(k)?k:null);
+    if(!id)return;
+    buckets[id]=(buckets[id]||[]).concat(items);
+  });
+  return buckets;
+}
+function boardsCoveringMonthMap(mapped){
+  const keys=Object.keys(mapped).sort();
+  const boards=[];
+  let i=0;
+  while(i<keys.length){
+    const [y,m]=keys[i].split('-').map(Number);
+    const raw={
+      id:'rmb-rec-'+keys[i],
+      name:'Roadmap '+(boards.length+1),
+      startYear:y,
+      startMonth:m-1,
+      columns:mapped,
+    };
+    const board=normalizeRoadmapBoard(raw,boards.length);
+    boards.push(board);
+    const covered=new Set(roadmapMonthDefs(board).map(d=>d.id));
+    const next=keys.findIndex((k,idx)=>idx>=i&&!covered.has(k));
+    if(next<0)break;
+    if(next===i)i+=1;
+    else i=next;
+  }
+  return boards;
+}
 function migrateLegacyRoadmapPayload(data){
-  // Old format: {sep:[],oct:[],nov:[],dec:[]}
-  const year=2025;
-  const board={
-    id:'rmb-legacy-'+Date.now(),
+  const src=data&&typeof data==='object'?{...data,...(data.columns&&typeof data.columns==='object'?data.columns:{}),...(data.data&&typeof data.data==='object'?data.data:{})}:{};
+  const mapped=collectMonthBuckets(src);
+  const boards=boardsCoveringMonthMap(mapped);
+  if(boards.length)return {activeId:boards[0].id,boards};
+  const now=new Date();
+  const fallback=normalizeRoadmapBoard({
+    id:'rmb-legacy-1',
     name:'Roadmap 1',
-    startYear:year,
-    startMonth:9, // Oct–Dec
-  };
-  const cols=emptyRoadmapColumns(roadmapMonthDefs(board));
-  // Merge September into October; map oct/nov/dec
-  const sep=Array.isArray(data.sep)?data.sep:[];
-  const oct=Array.isArray(data.oct)?data.oct:[];
-  cols[year+'-10']=[...sep,...oct].filter(Boolean).map(normalizeRoadmapItem);
-  cols[year+'-11']=(Array.isArray(data.nov)?data.nov:[]).filter(Boolean).map(normalizeRoadmapItem);
-  cols[year+'-12']=(Array.isArray(data.dec)?data.dec:[]).filter(Boolean).map(normalizeRoadmapItem);
-  board.columns=cols;
-  return {activeId:board.id,boards:[board]};
+    startYear:now.getFullYear(),
+    startMonth:9,
+    columns:src,
+  },0);
+  return {activeId:fallback.id,boards:[fallback]};
 }
 function normalizeRoadmapStore(data){
   if(!data||typeof data!=='object')return {activeId:null,boards:[]};
-  if(Array.isArray(data.boards)){
-    const boards=data.boards.filter(Boolean).map((b,i)=>normalizeRoadmapBoard(b,i));
-    let activeId=data.activeId||null;
-    if(activeId&&!boards.some(b=>b.id===activeId))activeId=boards[0]?.id||null;
-    if(!activeId)activeId=boards[0]?.id||null;
-    return {activeId,boards};
-  }
-  // Legacy month-keyed object
-  if(LEGACY_ROADMAP_MONTHS.some(m=>m.id in data)){
+  const listed=fbList(data.boards);
+  let boards=listed.filter(Boolean).map((b,i)=>normalizeRoadmapBoard(b,i));
+  const hasMonthKeys=Object.keys(data).some(k=>
+    LEGACY_ROADMAP_MONTHS.some(m=>m.id===k)||/^\d{4}-\d{2}$/.test(k)
+  );
+  if(!boards.length&&(hasMonthKeys||data.columns||data.data)){
     return migrateLegacyRoadmapPayload(data);
   }
-  return {activeId:null,boards:[]};
+  if(hasMonthKeys&&boards.length){
+    const recovered=migrateLegacyRoadmapPayload(data).boards;
+    recovered.forEach(extra=>{
+      const extraCount=roadmapMonthDefs(extra).reduce((n,m)=>n+(extra.columns[m.id]||[]).length,0);
+      if(!extraCount)return;
+      const overlap=boards.some(b=>b.startYear===extra.startYear&&b.startMonth===extra.startMonth);
+      if(!overlap)boards.push(extra);
+    });
+  }
+  boards=boards.filter(b=>b&&b.id);
+  let activeId=data.activeId||null;
+  if(activeId&&!boards.some(b=>b.id===activeId))activeId=boards[0]?.id||null;
+  if(!activeId)activeId=boards[0]?.id||null;
+  return {activeId,boards};
 }
 function currentRoadmapBoard(){
   const p=roadmapProject();
@@ -3934,8 +4034,11 @@ async function loadRoadmapForProject(project){
     const normalized=normalizeRoadmapStore(data);
     roadmapStoreByProject[p]=normalized;
     activeRoadmapByProject[p]=normalized.activeId;
-    // Persist migrated legacy format once
-    if(canEdit()&&data&&!Array.isArray(data.boards)&&LEGACY_ROADMAP_MONTHS.some(m=>m.id in data)){
+    const itemCount=normalized.boards.reduce((n,b)=>{
+      const cols=b.columns||{};
+      return n+Object.keys(cols).reduce((m,k)=>m+fbList(cols[k]).length,0);
+    },0);
+    if(canEdit()&&itemCount&&!Array.isArray(data.boards)){
       await saveRoadmaps(p);
     }
   }catch(e){
@@ -3945,9 +4048,27 @@ async function loadRoadmapForProject(project){
   }
 }
 
+function ensureDefaultRoadmap(project){
+  const rm=getRoadmapStore(project);
+  if(rm.boards.length)return;
+  const now=new Date();
+  const board=normalizeRoadmapBoard({
+    id:'rmb-default-'+project,
+    name:'Roadmap 1',
+    startYear:now.getFullYear(),
+    startMonth:9,
+    columns:{},
+  },0);
+  rm.boards=[board];
+  rm.activeId=board.id;
+  activeRoadmapByProject[project]=board.id;
+}
+
 async function loadAllRoadmaps(){
   await loadRoadmapForProject('smartbot');
   await loadRoadmapForProject('zenchat');
+  ensureDefaultRoadmap('smartbot');
+  ensureDefaultRoadmap('zenchat');
 }
 
 async function createRoadmapBoard(project){
@@ -4892,10 +5013,6 @@ function updateMyTasksBadge(){
   renderMyTasks();
   updateMyTasksBadge();
   subscribeBoard();
-  if(canEdit()){
-    await saveBoardsMeta();
-    await saveDeveloperNames();
-  }
   applyAccessMode();
 })();
 </script>
